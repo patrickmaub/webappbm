@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline LaTeX Equation Renderer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #equation-input {
+            width: 100%;
+            height: 30px;
+            font-size: 18px;
+            padding: 10px;
+        }
+        #render-button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #equation-render {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Offline LaTeX Equation Renderer</h1>
+
+<textarea id="equation-input" placeholder="Enter your LaTeX equation here..."></textarea>
+<button id="render-button">Render Equation</button>
+
+<div id="equation-render"></div>
+
+<script>
+    // Function to render LaTeX equation
+    function renderEquation() {
+        const input = document.getElementById('equation-input').value.trim();
+        if (input === '') {
+            alert('Please enter a LaTeX equation.');
+            return;
+        }
+
+        // Use MathJax to render the LaTeX equation
+        const renderElement = document.getElementById('equation-render');
+        renderElement.innerHTML = `\\(${input}\\)`;
+
+        // Call MathJax to process the equation
+        MathJax.Hub.Queue(["Typeset", MathJax.Hub, "equation-render"]);
+    }
+
+    // Add event listener to the render button
+    document.getElementById('render-button').addEventListener('click', renderEquation);
+
+    // Initialize MathJax
+    (function () {
+        var script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = "https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js";
+        script.async = true;
+        script.onload = function () {
+            MathJax.Hub.Config({
+                tex2jax: {inlineMath: [["\\(","\\)"]]},
+                svg: {scale: 1.5}
+            });
+        };
+        document.getElementsByTagName("head")[0].appendChild(script);
+    })();
+</script>
+
+</body>
+</html>

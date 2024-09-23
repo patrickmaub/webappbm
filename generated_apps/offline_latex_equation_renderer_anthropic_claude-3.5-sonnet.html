@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Offline LaTeX Equation Renderer</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #app {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #editor {
+            height: 200px;
+            margin-bottom: 20px;
+        }
+        #output {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+            min-height: 100px;
+        }
+        #history {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            cursor: pointer;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .history-item:hover {
+            background-color: #f0f0f0;
+        }
+        button {
+            margin-right: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Advanced Offline LaTeX Equation Renderer</h1>
+        <div id="editor"></div>
+        <button onclick="renderEquation()">Render Equation</button>
+        <button onclick="clearEditor()">Clear Editor</button>
+        <button onclick="exportPNG()">Export as PNG</button>
+        <button onclick="exportPDF()">Export as PDF</button>
+        <h2>Rendered Output:</h2>
+        <div id="output"></div>
+        <h2>Equation History:</h2>
+        <div id="history"></div>
+    </div>
+
+    <script>
+        let quill;
+        let history = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            quill = new Quill('#editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'script': 'sub'}, { 'script': 'super' }],
+                        [{ 'color': [] }, { 'background': [] }],
+                    ]
+                }
+            });
+
+            quill.on('text-change', debounce(renderEquation, 1000));
+
+            loadHistory();
+            renderHistory();
+        });
+
+        function renderEquation() {
+            const latex = quill.root.innerHTML;
+            const output = document.getElementById('output');
+            output.innerHTML = latex;
+            MathJax.typesetPromise([output]).then(() => {
+                addToHistory(latex);
+            });
+        }
+
+        function clearEditor() {
+            quill.setText('');
+        }
+
+        function addToHistory(latex) {
+            if (!history.includes(latex)) {
+                history.unshift(latex);
+                if (history.length > 10) {
+                    history.pop();
+                }
+                saveHistory();
+                renderHistory();
+            }
+        }
+
+        function saveHistory() {
+            localStorage.setItem('latexHistory', JSON.stringify(history));
+        }
+
+        function loadHistory() {
+            const savedHistory = localStorage.getItem('latexHistory');
+            if (savedHistory) {
+                history = JSON.parse(savedHistory);
+            }
+        }
+
+        function renderHistory() {
+            const historyContainer = document.getElementById('history');
+            historyContainer.innerHTML = '';
+            history.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = item;
+                div.onclick = () => loadFromHistory(index);
+                historyContainer.appendChild(div);
+            });
+        }
+
+        function loadFromHistory(index) {
+            quill.root.innerHTML = history[index];
+            renderEquation();
+        }
+
+        function exportPNG() {
+            html2canvas(document.getElementById('output')).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'equation.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const output = document.getElementById('output');
+            
+            doc.html(output, {
+                callback: function (doc) {
+                    doc.save('equation.pdf');
+                },
+                x: 10,
+                y: 10
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>

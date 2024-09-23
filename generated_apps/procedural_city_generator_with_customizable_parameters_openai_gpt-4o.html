@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural City Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            width: 100%;
+            padding: 1rem 0;
+            text-align: center;
+        }
+
+        #controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        #controls label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #controls input,
+        #controls select {
+            padding: 5px;
+        }
+
+        #canvas-container {
+            border: 1px solid #333;
+            background-color: #fff;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        footer {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Procedural City Generator</h1>
+    </header>
+
+    <div id="controls">
+        <div>
+            <label for="width">City Width:</label>
+            <input type="number" id="width" value="800" min="100" max="2000">
+        </div>
+        <div>
+            <label for="height">City Height:</label>
+            <input type="number" id="height" value="600" min="100" max="2000">
+        </div>
+        <div>
+            <label for="density">Building Density:</label>
+            <input type="number" id="density" value="50" min="1" max="100">
+        </div>
+        <div>
+            <label for="style">Building Style:</label>
+            <select id="style">
+                <option value="modern">Modern</option>
+                <option value="classical">Classical</option>
+                <option value="futuristic">Futuristic</option>
+            </select>
+        </div>
+        <div>
+            <button onclick="generateCity()">Generate City</button>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="cityCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 Procedural City Generator. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function generateCity() {
+            const canvas = document.getElementById('cityCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
+            const density = parseInt(document.getElementById('density').value);
+            const style = document.getElementById('style').value;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const buildingColors = {
+                modern: ['#5DADE2', '#2874A6', '#1ABC9C'],
+                classical: ['#F5B041', '#DC7633', '#BA4A00'],
+                futuristic: ['#A569BD', '#6C3483', '#8E44AD']
+            };
+
+            const colors = buildingColors[style] || buildingColors.modern;
+
+            for (let i = 0; i < density * 10; i++) {
+                const buildingWidth = Math.random() * 50 + 20;
+                const buildingHeight = Math.random() * 100 + 50;
+                const x = Math.random() * (width - buildingWidth);
+                const y = height - buildingHeight - (Math.random() * 50);
+
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                ctx.fillRect(x, y, buildingWidth, buildingHeight);
+
+                // Add windows
+                const windowCols = Math.floor(buildingWidth / 10);
+                const windowRows = Math.floor(buildingHeight / 10);
+                ctx.fillStyle = '#FFF';
+                for (let col = 0; col < windowCols; col++) {
+                    for (let row = 0; row < windowRows; row++) {
+                        if (Math.random() > 0.2) { // Randomly skip some windows
+                            const windowX = x + col * 10 + 2;
+                            const windowY = y + row * 10 + 2;
+                            ctx.fillRect(windowX, windowY, 6, 6);
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
+```

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cellular Automaton Simulator</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      color: #333;
+    }
+    .controls {
+      margin: 20px;
+    }
+    .controls label {
+      margin-right: 10px;
+    }
+    .grid {
+      display: grid;
+      border: 1px solid #ccc;
+    }
+    .cell {
+      width: 20px;
+      height: 20px;
+      background-color: white;
+      border: 1px solid #eee;
+    }
+    .alive {
+      background-color: #333;
+    }
+    .dead {
+      background-color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cellular Automaton Simulator</h1>
+
+  <div class="controls">
+    <label for="ruleset">Ruleset:</label>
+    <select id="ruleset">
+      <option value="conway">Conway's Game of Life</option>
+      <option value="highlife">HighLife</option>
+      <!-- Additional rulesets can be added here -->
+    </select>
+
+    <label for="grid-size">Grid Size:</label>
+    <input type="number" id="grid-size" value="20" min="10" max="100">
+
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <button id="clear">Clear</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
+
+  <script>
+    const gridElement = document.getElementById('grid');
+    const gridSizeInput = document.getElementById('grid-size');
+    const rulesetSelect = document.getElementById('ruleset');
+    const startButton = document.getElementById('start');
+    const stopButton = document.getElementById('stop');
+    const clearButton = document.getElementById('clear');
+
+    let gridSize = parseInt(gridSizeInput.value);
+    let grid = [];
+    let interval;
+    const rulesets = {
+      'conway': (neighbors, cell) => neighbors === 3 || (cell && neighbors === 2),
+      'highlife': (neighbors, cell) => neighbors === 3 || (cell && neighbors === 2) || neighbors === 6,
+      // Additional rulesets can be implemented here
+    };
+
+    function createGrid() {
+      grid = new Array(gridSize).fill(null).map(() => new Array(gridSize).fill(false));
+      gridElement.style.gridTemplateColumns = `repeat(${gridSize}, 20px)`;
+      gridElement.innerHTML = '';
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const cellElement = document.createElement('div');
+          cellElement.classList.add('cell', 'dead');
+          cellElement.addEventListener('click', () => toggleCell(i, j));
+          gridElement.appendChild(cellElement);
+        }
+      }
+    }
+
+    function toggleCell(i, j) {
+      grid[i][j] = !grid[i][j];
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const cells = gridElement.children;
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const index = i * gridSize + j;
+          cells[index].className = `cell ${grid[i][j] ? 'alive' : 'dead'}`;
+        }
+      }
+    }
+
+    function getNextGeneration() {
+      const nextGrid = grid.map(row => row.slice());
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const neighbors = countNeighbors(i, j);
+          const ruleset = rulesetSelect.value;
+          nextGrid[i][j] = rulesets[ruleset](neighbors, grid[i][j]);
+        }
+      }
+      grid = nextGrid;
+      renderGrid();
+    }
+
+    function countNeighbors(x, y) {
+      let count = 0;
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          if (i === 0 && j === 0) continue;
+          const ni = x + i;
+          const nj = y + j;
+          if (ni >= 0 && ni < gridSize && nj >= 0 && nj < gridSize && grid[ni][nj]) {
+            count++;
+          }
+        }
+      }
+      return count;
+    }
+
+    function startSimulation() {
+      if (!interval) {
+        interval = setInterval(getNextGeneration, 200);
+      }
+    }
+
+    function stopSimulation() {
+      clearInterval(interval);
+      interval = null;
+    }
+
+    function clearGrid() {
+      stopSimulation();
+      createGrid();
+    }
+
+    gridSizeInput.addEventListener('change', () => {
+      gridSize = parseInt(gridSizeInput.value);
+      createGrid();
+    });
+
+    startButton.addEventListener('click', startSimulation);
+    stopButton.addEventListener('click', stopSimulation);
+    clearButton.addEventListener('click', clearGrid);
+
+    createGrid();
+  </script>
+</body>
+</html>

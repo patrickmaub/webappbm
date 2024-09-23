@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster Pro - Advanced Task Management SaaS</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f9f9f9;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-left: 20px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        main {
+            margin-top: 80px;
+            padding: 2rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background-color: #e09400;
+        }
+
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 3rem;
+        }
+
+        .feature {
+            flex-basis: calc(33.333% - 20px);
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .pricing {
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .pricing h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .price-cards {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .price-card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .price-card:hover {
+            transform: scale(1.05);
+        }
+
+        .price-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .price {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .price-features {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .price-features li {
+            margin-bottom: 0.5rem;
+        }
+
+        .testimonials {
+            margin-top: 3rem;
+            text-align: center;
+        }
+
+        .testimonials h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .testimonial-slider {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .testimonial {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .testimonial.active {
+            opacity: 1;
+        }
+
+        .testimonial p {
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+
+        .testimonial .author {
+            font-weight: bold;
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 1rem 0;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .features {
+                flex-direction: column;
+            }
+
+            .feature {
+                flex-basis: 100%;
+            }
+
+            .price-cards {
+                flex-direction: column;
+            }
+
+            .price-card {
+                margin-bottom: 2rem;
+            }
+        }
+
+        #taskApp {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        #taskForm {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #taskInput {
+            flex-grow: 1;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        #taskList {
+            list-style: none;
+        }
+
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background-color: #f0f0f0;
+            margin-bottom: 0.5rem;
+            border-radius: 3px;
+        }
+
+        .task-item button {
+            background-color: #ff4136;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.5rem;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #loginModal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 5px;
+            max-width: 400px;
+        }
+
+        .close {
+            float: right;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #loginForm {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #loginForm input {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        #loginForm button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">TaskMaster Pro</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#testimonials">Testimonials</a></li>
+                <li><a href="#" id="loginBtn">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h1>Boost Your Productivity with TaskMaster Pro</h1>
+            <p>The ultimate task management solution for individuals and teams</p>
+            <a href="#" class="cta-button">Get Started</a>
+        </section>
+
+        <section id="features" class="features">
+            <div class="feature">
+                <h3>Smart Task Organization</h3>
+                <p>Automatically categorize and prioritize your tasks for maximum efficiency.</p>
+            </div>
+            <div class="feature">
+                <h3>Team Collaboration</h3>
+                <p>Seamlessly work together with your team members on shared projects and tasks.</p>
+            </div>
+            <div class="feature">
+                <h3>Advanced Analytics</h3>
+                <p>Gain valuable insights into your productivity patterns and team performance.</p>
+            </div>
+            <div class="feature">
+                <h3>Cross-Platform Sync</h3>
+                <p>Access your tasks from anywhere, on any device, with real-time synchronization.</p>
+            </div>
+            <div class="feature">
+                <h3>Customizable Workflows</h3>
+                <p>Create and optimize workflows that fit your unique business processes.</p>
+            </div>
+            <div class="feature">
+                <h3>Integrations</h3>
+                <p>Connect TaskMaster Pro with your favorite tools and services for a seamless experience.</p>
+            </div>
+        </section>
+
+        <section id="taskApp">
+            <h2>Try TaskMaster Pro</h2>
+            <form id="taskForm">
+                <input type="text" id="taskInput" placeholder="Enter a task" required>
+                <button type="submit" class="cta-button">Add Task</button>
+            </form>
+            <ul id="taskList"></ul>
+        </section>
+
+        <section id="pricing" class="pricing">
+            <h2>Choose Your Plan</h2>
+            <div class="price-cards">
+                <div class="price-card">
+                    <h3>Basic</h3>
+                    <div class="price">$9.99/mo</div>
+                    <ul class="price-features">
+                        <li>Up to 5 users</li>
+                        <li>Basic task management</li>
+                        <li>Limited integrations</li>
+                    </ul>
+                    <a href="#" class="cta-button">Choose Basic</a>
+                </div>
+                <div class="price-card">
+                    <h3>Pro</h3>
+                    <div class="price">$19.99/mo</div>
+                    <ul class="price-features">
+                        <li>Up to 20 users</li>
+                        <li>Advanced task management</li>
+                        <li>Full integrations</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <a href="#" class="cta-button">Choose Pro</a>
+                </div>
+                <div class="price-card">
+                    <h3>Enterprise</h3>
+                    <div class="price">Custom</div>
+                    <ul class="price-features">
+                        <li>Unlimited users</li>
+                        <li>Custom features</li>
+                        <li>Dedicated support</li>
+                        <li>On-premise option</li>
+                    </ul>
+                    <a href="#" class="cta-button">Contact Sales</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="testimonials" class="testimonials">
+            <h2>What Our Customers Say</h2>
+            <div class="testimonial-slider">
+                <div class="testimonial active">
+                    <p>"TaskMaster Pro has revolutionized the way our team works. We've seen a 30% increase in productivity since implementing it."</p>
+                    <div class="author">- John Doe, CEO of TechCorp</div>
+                </div>
+                <div class="testimonial">
+                    <p>"The customizable workflows and integrations have made TaskMaster Pro an indispensable tool for our marketing team."</p>
+                    <div class="author">- Jane Smith, Marketing Director</div>
+                </div>
+                <div class="testimonial">
+                    <p>"As a freelancer, TaskMaster Pro helps me stay organized and meet deadlines consistently. It's a game-changer!"</p>
+                    <div class="author">- Mike Johnson, Freelance Designer</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 TaskMaster Pro. All rights reserved.</p>
+    </footer>
+
+    <div id="loginModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Login</h2>
+            <form id="loginForm">
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Task management functionality
+        const taskForm = document.getElementById('taskForm');
+        const taskInput = document.getElementById('taskInput');
+        const taskList = document.getElementById('taskList');
+
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            tasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                li.innerHTML = `
+                    <span>${task}</span>
+                    <button onclick="deleteTask(${index})">Delete</button>
+                `;
+                taskList.appendChild(li);
+            });
+        }
+
+        function addTask(e) {
+            e.preventDefault();
+            const task = taskInput.value.trim();
+            if (task) {
+                tasks.push(task);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                taskInput.value = '';
+                renderTasks();
+            }
+        }
+
+        function deleteTask(index) {
+            tasks.splice(index, 1);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        taskForm.addEventListener('submit', addTask);
+        renderTasks();
+
+        // Testimonial slider
+        const testimonials = document.querySelectorAll('.testimonial');
+        let currentTestimonial = 0;
+
+        function showNextTestimonial() {
+            testimonials[currentTestimonial].classList.remove('active');
+            currentTestimonial = (currentTestimonial + 1) % testimonials.length;
+            testimonials[currentTestimonial].classList.add('active');
+        }
+
+        setInterval(showNextTestimonial, 5000);
+
+        // Login modal
+        const loginBtn = document.getElementById('loginBtn');
+        const loginModal = document.getElementById('loginModal');
+        const closeBtn = document.querySelector('.close');
+        const loginForm = document.getElementById('loginForm');
+
+        loginBtn.onclick = function() {
+            loginModal.style.display = 'block';
+        }
+
+        closeBtn.onclick = function() {
+            loginModal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == loginModal) {
+                loginModal.style.display = 'none';
+            }
+        }
+
+        loginForm.onsubmit = function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            // Here you would typically send a request to your server to authenticate the user
+            console.log('Login attempt:', email, password);
+            alert('Login functionality not implemented in this demo.');
+            loginModal.style.display = 'none';
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Intersection Observer for animating elements as they come into view
+        const animateOnScroll = (entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate');
+                    observer.unobserve(entry.target);
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(animateOnScroll, {
+            root: null,
+            threshold: 0.1
+        });
+
+        document.querySelectorAll('.feature, .price-card').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Add this to your existing JavaScript
+        // Service Worker registration for offline functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        // Example of using the Web Share API
+        const shareButton = document.createElement('button');
+        shareButton.textContent = 'Share TaskMaster Pro';
+        shareButton.classList.add('cta-button');
+        document.querySelector('.hero').appendChild(shareButton);
+
+        shareButton.addEventListener('click', async () => {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'TaskMaster Pro',
+                        text: 'Check out this amazing task management tool!',
+                        url: window.location.href
+                    });
+                    console.log('Successful share');
+                } catch (error) {
+                    console.log('Error sharing:', error);
+                }
+            } else {
+                alert('Web Share API is not supported in your browser');
+            }
+        });
+
+        // Add support for dark mode
+        const darkModeToggle = document.createElement('button');
+        darkModeToggle.textContent = 'Toggle Dark Mode';
+        darkModeToggle.classList.add('cta-button');
+        document.querySelector('nav').appendChild(darkModeToggle);
+
+        darkModeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        });
+
+        // Check for saved dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Add this CSS to your existing styles
+        `
+        .dark-mode {
+            --background-color: #222;
+            --text-color: #f0f0f0;
+        }
+
+        .dark-mode .feature,
+        .dark-mode .price-card,
+        .dark-mode #taskApp,
+        .dark-mode .modal-content {
+            background-color: #333;
+            color: var(--text-color);
+        }
+
+        .dark-mode .task-item {
+            background-color: #444;
+            color: var(--text-color);
+        }
+        `
+
+        // Add a simple data visualization
+        const ctx = document.createElement('canvas');
+        ctx.id = 'productivityChart';
+        document.querySelector('#taskApp').appendChild(ctx);
+
+        const productivityData = {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Tasks Completed',
+                data: [12, 19, 3, 5, 2, 3, 10],
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: productivityData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Add a simple notification system
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.padding = '10px';
+            notification.style.backgroundColor = 'var(--primary-color)';
+            notification.style.color = 'white';
+            notification.style.borderRadius = '5px';
+            notification.style.zIndex = '1000';
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Show a notification when a task is added
+        const originalAddTask = addTask;
+        addTask = function(e) {
+            originalAddTask(e);
+            showNotification('Task added successfully!');
+        }
+
+        // Add drag and drop functionality for tasks
+        new Sortable(taskList, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function() {
+                tasks = Array.from(taskList.children).map(li => li.querySelector('span').textContent);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+        });
+
+        // Add a simple search functionality
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search tasks...';
+        searchInput.style.marginBottom = '1rem';
+        taskForm.insertAdjacentElement('afterend', searchInput);
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            Array.from(taskList.children).forEach(li => {
+                const taskText = li.querySelector('span').textContent.toLowerCase();
+                li.style.display = taskText.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Add a simple task completion feature
+        function toggleTaskCompletion(index) {
+            tasks[index].completed = !tasks[index].completed;
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        // Modify the renderTasks function to include a checkbox
+        function renderTasks() {
+            taskList.innerHTML = '';
+            tasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                li.innerHTML = `
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion(${index})">
+                    <span style="${task.completed ? 'text-decoration: line-through;' : ''}">${task.text}</span>
+                    <button onclick="deleteTask(${index})">Delete</button>
+                `;
+                taskList.appendChild(li);
+            });
+        }
+
+        // Modify the addTask function to include the completed property
+        function addTask(e) {
+            e.preventDefault();
+            const taskText = taskInput.value.trim();
+            if (taskText) {
+                tasks.push({ text: taskText, completed: false });
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                taskInput.value = '';
+                renderTasks();
+            }
+        }
+
+        // Initialize tasks with the new structure
+        tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        tasks = tasks.map(task => typeof task === 'string' ? { text: task, completed: false } : task);
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        renderTasks();
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.13.0/Sortable.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        #controls {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #controls > * {
+            margin: 10px 0;
+        }
+        #canvas {
+            border: 1px solid #333;
+            background-color: #fff;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fractal Generator</h1>
+    <div id="controls">
+        <label for="fractalType">Fractal Type:</label>
+        <select id="fractalType">
+            <option value="tree">Tree</option>
+            <option value="sierpinski">Sierpinski Triangle</option>
+            <option value="koch">Koch Snowflake</option>
+        </select>
+        <label for="iterations">Iterations:</label>
+        <input type="range" id="iterations" min="1" max="10" value="4" step="1">
+        <label for="angle">Angle (degrees):</label>
+        <input type="range" id="angle" min="0" max="180" value="30" step="1">
+        <label for="length">Length:</label>
+        <input type="range" id="length" min="1" max="100" value="100" step="1">
+        <button id="generate">Generate Fractal</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const generateBtn = document.getElementById('generate');
+        const fractalTypeSelect = document.getElementById('fractalType');
+        const iterationsInput = document.getElementById('iterations');
+        const angleInput = document.getElementById('angle');
+        const lengthInput = document.getElementById('length');
+
+        generateBtn.addEventListener('click', generateFractal);
+
+        function generateFractal() {
+            const fractalType = fractalTypeSelect.value;
+            const iterations = parseInt(iterationsInput.value);
+            const angle = angleInput.value * Math.PI / 180;
+            const length = parseInt(lengthInput.value);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            switch (fractalType) {
+                case 'tree':
+                    drawTree(canvas.width / 2, canvas.height, -Math.PI / 2, length, iterations, angle);
+                    break;
+                case 'sierpinski':
+                    drawSierpinskiTriangle(canvas.width / 2, canvas.height * 0.9, length, iterations);
+                    break;
+                case 'koch':
+                    drawKochSnowflake(canvas.width / 2, canvas.height * 0.9, length, iterations);
+                    break;
+            }
+        }
+
+        function drawTree(x, y, angle, length, depth, angleDelta) {
+            if (depth === 0) return;
+
+            const x2 = x + length * Math.cos(angle);
+            const y2 = y + length * Math.sin(angle);
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            drawTree(x2, y2, angle - angleDelta, length * 0.7, depth - 1, angleDelta);
+            drawTree(x2, y2, angle + angleDelta, length * 0.7, depth - 1, angleDelta);
+        }
+
+        function drawSierpinskiTriangle(x, y, length, depth) {
+            if (depth === 0) {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + length * Math.cos(Math.PI / 3), y + length * Math.sin(Math.PI / 3));
+                ctx.lineTo(x + length, y);
+                ctx.closePath();
+                ctx.stroke();
+                return;
+            }
+
+            drawSierpinskiTriangle(x, y, length / 2, depth - 1);
+            drawSierpinskiTriangle(x + length / 2, y, length / 2, depth - 1);
+            drawSierpinskiTriangle(x + length / 4, y + length * Math.sin(Math.PI / 3) / 2, length / 2, depth - 1);
+        }
+
+        function drawKochSnowflake(x, y, length, depth) {
+            drawKochLine(x, y, x + length, y, depth);
+            drawKochLine(x + length, y, x + length / 2, y - length * Math.sqrt(3) / 2, depth);
+            drawKochLine(x + length / 2, y - length * Math.sqrt(3) / 2, x, y, depth);
+        }
+
+        function drawKochLine(x1, y1, x2, y2, depth) {
+            if (depth === 0) {
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                return;
+            }
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+
+            const x3 = x1 + dx / 3;
+            const y3 = y1 + dy / 3;
+
+            const x5 = x1 + dx * 2 / 3;
+            const y5 = y1 + dy * 2 / 3;
+
+            const x4 = x3 + (x5 - x3) * Math.cos(Math.PI / 3) - (y5 - y3) * Math.sin(Math.PI / 3);
+            const y4 = y3 + (x5 - x3) * Math.sin(Math.PI / 3) + (y5 - y3) * Math.cos(Math.PI / 3);
+
+            drawKochLine(x1, y1, x3, y3, depth - 1);
+            drawKochLine(x3, y3, x4, y4, depth - 1);
+            drawKochLine(x4, y4, x5, y5, depth - 1);
+            drawKochLine(x5, y5, x2, y2, depth - 1);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Fractal Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        #fractalCanvas {
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .control-group {
+            margin: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input[type="number"], input[type="color"] {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #zoomInfo {
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Advanced Fractal Generator</h1>
+        <canvas id="fractalCanvas" width="800" height="600"></canvas>
+        <div id="zoomInfo">Click and drag to zoom in. Double-click to reset zoom.</div>
+        <div class="controls">
+            <div class="control-group">
+                <label for="fractalType">Fractal Type:</label>
+                <select id="fractalType">
+                    <option value="mandelbrot">Mandelbrot Set</option>
+                    <option value="julia">Julia Set</option>
+                    <option value="sierpinski">Sierpinski Triangle</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="maxIterations">Max Iterations:</label>
+                <input type="number" id="maxIterations" value="100" min="10" max="1000">
+            </div>
+            <div class="control-group">
+                <label for="colorScheme">Color Scheme:</label>
+                <select id="colorScheme">
+                    <option value="rainbow">Rainbow</option>
+                    <option value="grayscale">Grayscale</option>
+                    <option value="fire">Fire</option>
+                    <option value="electric">Electric</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="juliaReal">Julia Real:</label>
+                <input type="number" id="juliaReal" value="-0.7" step="0.1" min="-2" max="2">
+                <label for="juliaImag">Julia Imaginary:</label>
+                <input type="number" id="juliaImag" value="0.27015" step="0.1" min="-2" max="2">
+            </div>
+            <div class="control-group">
+                <label for="sierpinskiDepth">Sierpinski Depth:</label>
+                <input type="number" id="sierpinskiDepth" value="7" min="1" max="10">
+            </div>
+            <div class="control-group">
+                <button id="generateBtn">Generate Fractal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const fractalType = document.getElementById('fractalType');
+        const maxIterations = document.getElementById('maxIterations');
+        const colorScheme = document.getElementById('colorScheme');
+        const juliaReal = document.getElementById('juliaReal');
+        const juliaImag = document.getElementById('juliaImag');
+        const sierpinskiDepth = document.getElementById('sierpinskiDepth');
+        const generateBtn = document.getElementById('generateBtn');
+        const zoomInfo = document.getElementById('zoomInfo');
+
+        let zoomRect = { x: 0, y: 0, width: canvas.width, height: canvas.height };
+        let isDrawing = false;
+        let startX, startY;
+
+        function mandelbrot(x, y, maxIter) {
+            let real = x;
+            let imag = y;
+            for (let i = 0; i < maxIter; i++) {
+                const r2 = real * real;
+                const i2 = imag * imag;
+                if (r2 + i2 > 4) return i;
+                imag = 2 * real * imag + y;
+                real = r2 - i2 + x;
+            }
+            return maxIter;
+        }
+
+        function julia(x, y, maxIter, cReal, cImag) {
+            let real = x;
+            let imag = y;
+            for (let i = 0; i < maxIter; i++) {
+                const r2 = real * real;
+                const i2 = imag * imag;
+                if (r2 + i2 > 4) return i;
+                imag = 2 * real * imag + cImag;
+                real = r2 - i2 + cReal;
+            }
+            return maxIter;
+        }
+
+        function sierpinski(x, y, size, depth) {
+            if (depth === 0) {
+                ctx.fillRect(x, y, size, size);
+            } else {
+                const newSize = size / 2;
+                sierpinski(x, y, newSize, depth - 1);
+                sierpinski(x + newSize, y, newSize, depth - 1);
+                sierpinski(x + newSize / 2, y + newSize, newSize, depth - 1);
+            }
+        }
+
+        function getColor(iteration, maxIter, scheme) {
+            const t = iteration / maxIter;
+            switch (scheme) {
+                case 'rainbow':
+                    const r = Math.sin(t * Math.PI * 2) * 127 + 128;
+                    const g = Math.sin(t * Math.PI * 2 + 2 * Math.PI / 3) * 127 + 128;
+                    const b = Math.sin(t * Math.PI * 2 + 4 * Math.PI / 3) * 127 + 128;
+                    return `rgb(${r},${g},${b})`;
+                case 'grayscale':
+                    const gray = Math.floor(t * 255);
+                    return `rgb(${gray},${gray},${gray})`;
+                case 'fire':
+                    const r2 = Math.floor(t * 255);
+                    const g2 = Math.floor(Math.pow(t, 2) * 255);
+                    const b2 = Math.floor(Math.pow(t, 4) * 255);
+                    return `rgb(${r2},${g2},${b2})`;
+                case 'electric':
+                    const r3 = Math.floor(Math.pow(t, 3) * 255);
+                    const g3 = Math.floor(Math.pow(t, 2) * 255);
+                    const b3 = Math.floor(t * 255);
+                    return `rgb(${r3},${g3},${b3})`;
+            }
+        }
+
+        function drawFractal() {
+            const type = fractalType.value;
+            const maxIter = parseInt(maxIterations.value);
+            const scheme = colorScheme.value;
+            const cReal = parseFloat(juliaReal.value);
+            const cImag = parseFloat(juliaImag.value);
+            const depth = parseInt(sierpinskiDepth.value);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (type === 'mandelbrot' || type === 'julia') {
+                const imageData = ctx.createImageData(canvas.width, canvas.height);
+                for (let y = 0; y < canvas.height; y++) {
+                    for (let x = 0; x < canvas.width; x++) {
+                        const zx = (x / canvas.width) * (zoomRect.width) + zoomRect.x;
+                        const zy = (y / canvas.height) * (zoomRect.height) + zoomRect.y;
+                        const iteration = type === 'mandelbrot'
+                            ? mandelbrot(zx * 4 - 2, zy * 4 - 2, maxIter)
+                            : julia(zx * 4 - 2, zy * 4 - 2, maxIter, cReal, cImag);
+                        const color = getColor(iteration, maxIter, scheme);
+                        const [r, g, b] = color.match(/\d+/g).map(Number);
+                        const index = (y * canvas.width + x) * 4;
+                        imageData.data[index] = r;
+                        imageData.data[index + 1] = g;
+                        imageData.data[index + 2] = b;
+                        imageData.data[index + 3] = 255;
+                    }
+                }
+                ctx.putImageData(imageData, 0, 0);
+            } else if (type === 'sierpinski') {
+                ctx.fillStyle = 'black';
+                sierpinski(0, 0, canvas.width, depth);
+            }
+        }
+
+        generateBtn.addEventListener('click', drawFractal);
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            startX = e.offsetX;
+            startY = e.offsetY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawFractal();
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(startX, startY, x - startX, y - startY);
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const newZoomRect = {
+                x: zoomRect.x + (startX / canvas.width) * zoomRect.width,
+                y: zoomRect.y + (startY / canvas.height) * zoomRect.height,
+                width: ((x - startX) / canvas.width) * zoomRect.width,
+                height: ((y - startY) / canvas.height) * zoomRect.height
+            };
+            zoomRect = newZoomRect;
+            drawFractal();
+        });
+
+        canvas.addEventListener('dblclick', () => {
+            zoomRect = { x: -2, y: -2, width: 4, height: 4 };
+            drawFractal();
+        });
+
+        fractalType.addEventListener('change', () => {
+            const isSierpinski = fractalType.value === 'sierpinski';
+            juliaReal.parentElement.style.display = isSierpinski ? 'none' : 'block';
+            juliaImag.parentElement.style.display = isSierpinski ? 'none' : 'block';
+            sierpinskiDepth.parentElement.style.display = isSierpinski ? 'block' : 'none';
+            colorScheme.parentElement.style.display = isSierpinski ? 'none' : 'block';
+        });
+
+        drawFractal();
+    </script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Pathfinding Algorithm Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f0f0f0;
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        #controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #controls button:hover {
+            background: #0056b3;
+        }
+        #algorithm-select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(50, 10px);
+            grid-template-rows: repeat(50, 10px);
+            gap: 1px;
+            background: #f0f0f0;
+        }
+        .cell {
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .start {
+            background: #00FF00;
+        }
+        .end {
+            background: #FF0000;
+        }
+        .wall {
+            background: #000;
+        }
+        .path {
+            background: #0000FF;
+        }
+        .visited {
+            background: #FFA500;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="controls">
+            <select id="algorithm-select">
+                <option value="dijkstra">Dijkstra's Algorithm</option>
+                <option value="a-star">A* Algorithm</option>
+                <option value="bfs">Breadth-First Search</option>
+                <option value="dfs">Depth-First Search</option>
+            </select>
+            <button id="start-btn">Start Visualization</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+        <div id="grid"></div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const algorithmSelect = document.getElementById('algorithm-select');
+        const rows = 50;
+        const cols = 50;
+        const cells = [];
+
+        for (let row = 0; row < rows; row++) {
+            cells[row] = [];
+            for (let col = 0; col < cols; col++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.row = row;
+                cell.dataset.col = col;
+                cell.addEventListener('click', handleCellClick);
+                grid.appendChild(cell);
+                cells[row][col] = cell;
+            }
+        }
+
+        let startCell = null;
+        let endCell = null;
+        let walls = [];
+        let isDrawingWalls = false;
+
+        function handleCellClick(e) {
+            const cell = e.target;
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+
+            if (isDrawingWalls) {
+                if (!walls.includes(cell)) {
+                    cell.classList.add('wall');
+                    walls.push(cell);
+                }
+            } else if (startCell === null) {
+                cell.classList.add('start');
+                startCell = cell;
+            } else if (endCell === null && cell !== startCell) {
+                cell.classList.add('end');
+                endCell = cell;
+            } else {
+                if (cell === startCell) {
+                    cell.classList.remove('start');
+                    startCell = null;
+                } else if (cell === endCell) {
+                    cell.classList.remove('end');
+                    endCell = null;
+                }
+            }
+        }
+
+        startBtn.addEventListener('click', startVisualization);
+        resetBtn.addEventListener('click', resetGrid);
+
+        function startVisualization() {
+            if (startCell && endCell) {
+                const algorithm = algorithmSelect.value;
+                const start = [parseInt(startCell.dataset.row), parseInt(startCell.dataset.col)];
+                const end = [parseInt(endCell.dataset.row), parseInt(endCell.dataset.col)];
+                const gridArray = Array.from({ length: rows }, () => Array(cols).fill(0));
+                walls.forEach(cell => {
+                    gridArray[parseInt(cell.dataset.row)][parseInt(cell.dataset.col)] = 1;
+                });
+
+                switch (algorithm) {
+                    case 'dijkstra':
+                        dijkstra(gridArray, start, end);
+                        break;
+                    case 'a-star':
+                        aStar(gridArray, start, end);
+                        break;
+                    case 'bfs':
+                        bfs(gridArray, start, end);
+                        break;
+                    case 'dfs':
+                        dfs(gridArray, start, end);
+                        break;
+                }
+            }
+        }
+
+        function resetGrid() {
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    cells[row][col].classList.remove('start', 'end', 'wall', 'path', 'visited');
+                }
+            }
+            startCell = null;
+            endCell = null;
+            walls = [];
+        }
+
+        function dijkstra(grid, start, end) {
+            const openSet = [start];
+            const visited = new Set();
+            const distances = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
+            distances[start[0]][start[1]] = 0;
+            const previous = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+            while (openSet.length > 0) {
+                const current = getLowestDistanceNode(openSet, distances);
+                if (current[0] === end[0] && current[1] === end[1]) {
+                    reconstructPath(previous, start, end);
+                    return;
+                }
+                openSet.splice(openSet.indexOf(current), 1);
+                visited.add(current);
+                cells[current[0]][current[1]].classList.add('visited');
+                const neighbors = getNeighbors(grid, current);
+                for (const neighbor of neighbors) {
+                    if (!visited.has(neighbor)) {
+                        const tentativeDistance = distances[current[0]][current[1]] + 1;
+                        if (tentativeDistance < distances[neighbor[0]][neighbor[1]]) {
+                            distances[neighbor[0]][neighbor[1]] = tentativeDistance;
+                            previous[neighbor[0]][neighbor[1]] = current;
+                            if (!openSet.includes(neighbor)) {
+                                openSet.push(neighbor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function aStar(grid, start, end) {
+            const openSet = [start];
+            const visited = new Set();
+            const gScores = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
+            const fScores = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
+            gScores[start[0]][start[1]] = 0;
+            fScores[start[0]][start[1]] = heuristic(start, end);
+            const previous = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+            while (openSet.length > 0) {
+                const current = getLowestFScoreNode(openSet, fScores);
+                if (current[0] === end[0] && current[1] === end[1]) {
+                    reconstructPath(previous, start, end);
+                    return;
+                }
+                openSet.splice(openSet.indexOf(current), 1);
+                visited.add(current);
+                cells[current[0]][current[1]].classList.add('visited');
+                const neighbors = getNeighbors(grid, current);
+                for (const neighbor of neighbors) {
+                    if (!visited.has(neighbor)) {
+                        const tentativeGScore = gScores[current[0]][current[1]] + 1;
+                        if (tentativeGScore < gScores[neighbor[0]][neighbor[1]]) {
+                            previous[neighbor[0]][neighbor[1]] = current;
+                            gScores[neighbor[0]][neighbor[1]] = tentativeGScore;
+                            fScores[neighbor[0]][neighbor[1]] = tentativeGScore + heuristic(neighbor, end);
+                            if (!openSet.includes(neighbor)) {
+                                openSet.push(neighbor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function bfs(grid, start, end) {
+            const openSet = [start];
+            const visited = new Set();
+            const previous = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+            while (openSet.length > 0) {
+                const current = openSet.shift();
+                if (current[0] === end[0] && current[1] === end[1]) {
+                    reconstructPath(previous, start, end);
+                    return;
+                }
+                visited.add(current);
+                cells[current[0]][current[1]].classList.add('visited');
+                const neighbors = getNeighbors(grid, current);
+                for (const neighbor of neighbors) {
+                    if (!visited.has(neighbor) && !openSet.includes(neighbor)) {
+                        previous[neighbor[0]][neighbor[1]] = current;
+                        openSet.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        function dfs(grid, start, end) {
+            const stack = [start];
+            const visited = new Set();
+            const previous = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+            while (stack.length > 0) {
+                const current = stack.pop();
+                if (current[0] === end[0] && current[1] === end[1]) {
+                    reconstructPath(previous, start, end);
+                    return;
+                }
+                visited.add(current);
+                cells[current[0]][current[1]].classList.add('visited');
+                const neighbors = getNeighbors(grid, current);
+                for (const neighbor of neighbors) {
+                    if (!visited.has(neighbor) && !stack.includes(neighbor)) {
+                        previous[neighbor[0]][neighbor[1]] = current;
+                        stack.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        function getLowestDistanceNode(nodes, distances) {
+            return nodes.reduce((lowest, node) => {
+                return distances[node[0]][node[1]] < distances[lowest[0]][lowest[1]] ? node : lowest;
+            });
+        }
+
+        function getLowestFScoreNode(nodes, fScores) {
+            return nodes.reduce((lowest, node) => {
+                return fScores[node[0]][node[1]] < fScores[lowest[0]][lowest[1]] ? node : lowest;
+            });
+        }
+
+        function heuristic(a, b) {
+            return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+        }
+
+        function getNeighbors(grid, node) {
+            const [row, col] = node;
+            const neighbors = [];
+            const directions = [
+                [row - 1, col],
+                [row + 1, col],
+                [row, col - 1],
+                [row, col + 1]
+            ];
+
+            for (const [r, c] of directions) {
+                if (r >= 0 && r < rows && c >= 0 && c < cols && grid[r][c] === 0) {
+                    neighbors.push([r, c]);
+                }
+            }
+
+            return neighbors;
+        }
+
+        function reconstructPath(previous, start, end) {
+            let current = end;
+            const path = [current];
+            while (current !== start) {
+                current = previous[current[0]][current[1]];
+                if (current) {
+                    path.unshift(current);
+                } else {
+                    break;
+                }
+            }
+            path.forEach(cell => {
+                cells[cell[0]][cell[1]].classList.add('path');
+            });
+        }
+
+        grid.addEventListener('mousedown', () => {
+            isDrawingWalls = true;
+        });
+
+        grid.addEventListener('mouseup', () => {
+            isDrawingWalls = false;
+        });
+
+        grid.addEventListener('mouseleave', () => {
+            isDrawingWalls = false;
+        });
+    </script>
+</body>
+</html>

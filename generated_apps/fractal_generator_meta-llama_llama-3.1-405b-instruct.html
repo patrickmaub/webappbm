@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            border: 1px solid black;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #ffffff;
+            padding: 10px;
+            border: 1px solid #000000;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <h2>Fractal Generator</h2>
+    <label for="zoom">Zoom:</label>
+    <input type="range" id="zoom" min="1" max="100" value="50">
+    <label for="panX">Pan X:</label>
+    <input type="range" id="panX" min="-200" max="200" value="0">
+    <label for="panY">Pan Y:</label>
+    <input type="range" id="panY" min="-200" max="200" value="0">
+    <label for="color">Color:</label>
+    <select id="color">
+        <option value="1">Grayscale</option>
+        <option value="2">Rainbow</option>
+        <option value="3">Heatmap</option>
+    </select>
+    <button id="generate">Generate</button>
+</div>
+
+<canvas id="canvas" width="800" height="600"></canvas>
+
+<script>
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d');
+    let zoom = document.getElementById('zoom');
+    let panX = document.getElementById('panX');
+    let panY = document.getElementById('panY');
+    let colorSelect = document.getElementById('color');
+    let generateButton = document.getElementById('generate');
+
+    let fractal = {
+        minX: -2.5,
+        maxX: 1.5,
+        minY: -1.5,
+        maxY: 1.5,
+        iterations: 100,
+        zoomLevel: 50,
+        panXLevel: 0,
+        panYLevel: 0,
+        colorScheme: 1
+    };
+
+    function drawFractal() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let x = 0; x < canvas.width; x++) {
+            for (let y = 0; y < canvas.height; y++) {
+                let mX = fractal.minX + (x / canvas.width) * (fractal.maxX - fractal.minX);
+                let mY = fractal.minY + (y / canvas.height) * (fractal.maxY - fractal.minY);
+                let m = mandelbrot(mX, mY, fractal.iterations);
+                let color = getColor(m, fractal.colorScheme);
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 1, 1);
+            }
+        }
+    }
+
+    function mandelbrot(x, y, maxIterations) {
+        let zx = 0;
+        let zy = 0;
+        let iteration = 0;
+        while (zx * zx + zy * zy < 4 && iteration < maxIterations) {
+            let temp = zx * zx - zy * zy + x;
+            zy = 2 * zx * zy + y;
+            zx = temp;
+            iteration++;
+        }
+        return iteration;
+    }
+
+    function getColor(iteration, colorScheme) {
+        let color;
+        if (colorScheme === 1) {
+            // Grayscale
+            color = `rgb(${iteration % 256}, ${iteration % 256}, ${iteration % 256})`;
+        } else if (colorScheme === 2) {
+            // Rainbow
+            color = `hsl(${iteration % 360}, 100%, 50%)`;
+        } else if (colorScheme === 3) {
+            // Heatmap
+            let r = iteration % 256;
+            let g = Math.floor(iteration / 256) % 256;
+            let b = Math.floor(iteration / 65536) % 256;
+            color = `rgb(${r}, ${g}, ${b})`;
+        }
+        return color;
+    }
+
+    zoom.addEventListener('input', () => {
+        fractal.zoomLevel = zoom.value;
+        fractal.minX = -2.5 / (fractal.zoomLevel / 50);
+        fractal.maxX = 1.5 / (fractal.zoomLevel / 50);
+        fractal.minY = -1.5 / (fractal.zoomLevel / 50);
+        fractal.maxY = 1.5 / (fractal.zoomLevel / 50);
+        drawFractal();
+    });
+
+    panX.addEventListener('input', () => {
+        fractal.panXLevel = panX.value;
+        fractal.minX += fractal.panXLevel / 100;
+        fractal.maxX += fractal.panXLevel / 100;
+        drawFractal();
+    });
+
+    panY.addEventListener('input', () => {
+        fractal.panYLevel = panY.value;
+        fractal.minY += fractal.panYLevel / 100;
+        fractal.maxY += fractal.panYLevel / 100;
+        drawFractal();
+    });
+
+    colorSelect.addEventListener('change', () => {
+        fractal.colorScheme = colorSelect.value;
+        drawFractal();
+    });
+
+    generateButton.addEventListener('click', () => {
+        drawFractal();
+    });
+
+    drawFractal();
+</script>
+
+</body>
+</html>

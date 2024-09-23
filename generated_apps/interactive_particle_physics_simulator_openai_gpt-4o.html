@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Particle Physics Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        #controls input, #controls button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="particleCount">Particles:</label>
+        <input type="number" id="particleCount" min="1" max="1000" value="100">
+        <button onclick="resetParticles()">Reset</button><br>
+        <label for="gravity">Gravity:</label>
+        <input type="range" id="gravity" min="0" max="1" step="0.01" value="0.1">
+        <span id="gravityValue">0.1</span><br>
+        <label for="elasticity">Elasticity:</label>
+        <input type="range" id="elasticity" min="0" max="1" step="0.01" value="0.9">
+        <span id="elasticityValue">0.9</span>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const controls = {
+            particleCount: document.getElementById('particleCount'),
+            gravity: document.getElementById('gravity'),
+            gravityValue: document.getElementById('gravityValue'),
+            elasticity: document.getElementById('elasticity'),
+            elasticityValue: document.getElementById('elasticityValue'),
+        };
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
+                this.mass = radius * radius * Math.PI;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            update(particles) {
+                this.vy += parseFloat(controls.gravity.value);
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) {
+                    this.vx = -this.vx * parseFloat(controls.elasticity.value);
+                    if (this.x - this.radius < 0) this.x = this.radius;
+                    if (this.x + this.radius > canvas.width) this.x = canvas.width - this.radius;
+                }
+
+                if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+                    this.vy = -this.vy * parseFloat(controls.elasticity.value);
+                    if (this.y - this.radius < 0) this.y = this.radius;
+                    if (this.y + this.radius > canvas.height) this.y = canvas.height - this.radius;
+                }
+
+                for (let i = 0; i < particles.length; i++) {
+                    if (this === particles[i]) continue;
+                    if (this.isColliding(particles[i])) {
+                        this.resolveCollision(particles[i]);
+                    }
+                }
+            }
+
+            isColliding(other) {
+                const dx = this.x - other.x;
+                const dy = this.y - other.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance < this.radius + other.radius;
+            }
+
+            resolveCollision(other) {
+                const dx = other.x - this.x;
+                const dy = other.y - this.y;
+                const collisionAngle = Math.atan2(dy, dx);
+
+                const speed1 = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const speed2 = Math.sqrt(other.vx * other.vx + other.vy * other.vy);
+
+                const direction1 = Math.atan2(this.vy, this.vx);
+                const direction2 = Math.atan2(other.vy, other.vx);
+
+                const velocityX1 = speed1 * Math.cos(direction1 - collisionAngle);
+                const velocityY1 = speed1 * Math.sin(direction1 - collisionAngle);
+                const velocityX2 = speed2 * Math.cos(direction2 - collisionAngle);
+                const velocityY2 = speed2 * Math.sin(direction2 - collisionAngle);
+
+                const finalVelocityX1 = ((this.mass - other.mass) * velocityX1 + (other.mass + other.mass) * velocityX2) / (this.mass + other.mass);
+                const finalVelocityX2 = ((this.mass + this.mass) * velocityX1 + (other.mass - this.mass) * velocityX2) / (this.mass + other.mass);
+
+                this.vx = Math.cos(collisionAngle) * finalVelocityX1 + Math.cos(collisionAngle + Math.PI / 2) * velocityY1;
+                this.vy = Math.sin(collisionAngle) * finalVelocityX1 + Math.sin(collisionAngle + Math.PI / 2) * velocityY1;
+                other.vx = Math.cos(collisionAngle) * finalVelocityX2 + Math.cos(collisionAngle + Math.PI / 2) * velocityY2;
+                other.vy = Math.sin(collisionAngle) * finalVelocityX2 + Math.sin(collisionAngle + Math.PI / 2) * velocityY2;
+            }
+        }
+
+        let particles = [];
+
+        function resetParticles() {
+            particles = [];
+            const particleCount = parseInt(controls.particleCount.value);
+            for (let i = 0; i < particleCount; i++) {
+                const radius = Math.random() * 15 + 5;
+                const x = Math.random() * (canvas.width - radius * 2) + radius;
+                const y = Math.random() * (canvas.height - radius * 2) + radius;
+                const color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.7)`;
+                particles.push(new Particle(x, y, radius, color));
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(particle => {
+                particle.update(particles);
+                particle.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        controls.gravity.addEventListener('input', () => {
+            controls.gravityValue.textContent = controls.gravity.value;
+        });
+
+        controls.elasticity.addEventListener('input', () => {
+            controls.elasticityValue.textContent = controls.elasticity.value;
+        });
+
+        resetParticles();
+        animate();
+    </script>
+</body>
+</html>

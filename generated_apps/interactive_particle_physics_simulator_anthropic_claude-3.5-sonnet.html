@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Particle Physics Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #controls h2 {
+            margin-top: 0;
+        }
+        #controls label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        #controls input[type="range"] {
+            width: 100%;
+        }
+        #controls button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #controls button:hover {
+            background-color: #45a049;
+        }
+        #stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="particleCanvas"></canvas>
+    </div>
+    <div id="controls">
+        <h2>Simulator Controls</h2>
+        <label for="particleCount">Particle Count: <span id="particleCountValue">100</span></label>
+        <input type="range" id="particleCount" min="10" max="1000" value="100">
+        <label for="gravity">Gravity: <span id="gravityValue">9.8</span></label>
+        <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.8">
+        <label for="friction">Friction: <span id="frictionValue">0.02</span></label>
+        <input type="range" id="friction" min="0" max="0.1" step="0.001" value="0.02">
+        <label for="elasticity">Elasticity: <span id="elasticityValue">0.8</span></label>
+        <input type="range" id="elasticity" min="0" max="1" step="0.01" value="0.8">
+        <label for="forceFieldStrength">Force Field Strength: <span id="forceFieldStrengthValue">50</span></label>
+        <input type="range" id="forceFieldStrength" min="0" max="200" value="50">
+        <button id="resetSimulation">Reset Simulation</button>
+        <button id="toggleColorMode">Toggle Color Mode</button>
+    </div>
+    <div id="stats">
+        <h3>Simulation Stats</h3>
+        <p>FPS: <span id="fpsValue">0</span></p>
+        <p>Active Particles: <span id="activeParticlesValue">0</span></p>
+        <p>Total Collisions: <span id="totalCollisionsValue">0</span></p>
+    </div>
+
+    <script>
+        class Vector2D {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            add(v) {
+                return new Vector2D(this.x + v.x, this.y + v.y);
+            }
+
+            subtract(v) {
+                return new Vector2D(this.x - v.x, this.y - v.y);
+            }
+
+            multiply(scalar) {
+                return new Vector2D(this.x * scalar, this.y * scalar);
+            }
+
+            divide(scalar) {
+                return new Vector2D(this.x / scalar, this.y / scalar);
+            }
+
+            magnitude() {
+                return Math.sqrt(this.x * this.x + this.y * this.y);
+            }
+
+            normalize() {
+                const mag = this.magnitude();
+                if (mag === 0) return new Vector2D(0, 0);
+                return this.divide(mag);
+            }
+
+            dot(v) {
+                return this.x * v.x + this.y * v.y;
+            }
+        }
+
+        class Particle {
+            constructor(x, y, radius, mass) {
+                this.position = new Vector2D(x, y);
+                this.velocity = new Vector2D(0, 0);
+                this.acceleration = new Vector2D(0, 0);
+                this.radius = radius;
+                this.mass = mass;
+                this.color = this.generateRandomColor();
+            }
+
+            generateRandomColor() {
+                const hue = Math.random() * 360;
+                return `hsl(${hue}, 100%, 50%)`;
+            }
+
+            applyForce(force) {
+                const f = force.divide(this.mass);
+                this.acceleration = this.acceleration.add(f);
+            }
+
+            update(dt) {
+                this.velocity = this.velocity.add(this.acceleration.multiply(dt));
+                this.position = this.position.add(this.velocity.multiply(dt));
+                this.acceleration = new Vector2D(0, 0);
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        class ParticleSystem {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.particles = [];
+                this.gravity = new Vector2D(0, 9.8);
+                this.friction = 0.02;
+                this.elasticity = 0.8;
+                this.forceFieldStrength = 50;
+                this.colorMode = 'random';
+                this.totalCollisions = 0;
+
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            createParticles(count) {
+                this.particles = [];
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * this.canvas.width;
+                    const y = Math.random() * this.canvas.height;
+                    const radius = Math.random() * 5 + 2;
+                    const mass = radius * 0.1;
+                    this.particles.push(new Particle(x, y, radius, mass));
+                }
+            }
+
+            applyGravity() {
+                this.particles.forEach(particle => {
+                    particle.applyForce(this.gravity.multiply(particle.mass));
+                });
+            }
+
+            applyFriction() {
+                this.particles.forEach(particle => {
+                    const friction = particle.velocity.multiply(-1).normalize().multiply(this.friction);
+                    particle.applyForce(friction);
+                });
+            }
+
+            applyForceField() {
+                const center = new Vector2D(this.canvas.width / 2, this.canvas.height / 2);
+                this.particles.forEach(particle => {
+                    const direction = center.subtract(particle.position);
+                    const distance = direction.magnitude();
+                    const strength = this.forceFieldStrength / (distance * distance);
+                    const force = direction.normalize().multiply(strength * particle.mass);
+                    particle.applyForce(force);
+                });
+            }
+
+            checkBoundaryCollisions() {
+                this.particles.forEach(particle => {
+                    if (particle.position.x - particle.radius < 0) {
+                        particle.position.x = particle.radius;
+                        particle.velocity.x *= -this.elasticity;
+                        this.totalCollisions++;
+                    } else if (particle.position.x + particle.radius > this.canvas.width) {
+                        particle.position.x = this.canvas.width - particle.radius;
+                        particle.velocity.x *= -this.elasticity;
+                        this.totalCollisions++;
+                    }
+
+                    if (particle.position.y - particle.radius < 0) {
+                        particle.position.y = particle.radius;
+                        particle.velocity.y *= -this.elasticity;
+                        this.totalCollisions++;
+                    } else if (particle.position.y + particle.radius > this.canvas.height) {
+                        particle.position.y = this.canvas.height - particle.radius;
+                        particle.velocity.y *= -this.elasticity;
+                        this.totalCollisions++;
+                    }
+                });
+            }
+
+            checkParticleCollisions() {
+                for (let i = 0; i < this.particles.length; i++) {
+                    for (let j = i + 1; j < this.particles.length; j++) {
+                        const p1 = this.particles[i];
+                        const p2 = this.particles[j];
+                        const distance = p1.position.subtract(p2.position).magnitude();
+
+                        if (distance < p1.radius + p2.radius) {
+                            this.resolveCollision(p1, p2);
+                            this.totalCollisions++;
+                        }
+                    }
+                }
+            }
+
+            resolveCollision(p1, p2) {
+                const normal = p1.position.subtract(p2.position).normalize();
+                const relativeVelocity = p1.velocity.subtract(p2.velocity);
+                const separatingVelocity = relativeVelocity.dot(normal);
+                const newSeparatingVelocity = -separatingVelocity * this.elasticity;
+                const separatingVelocityDiff = newSeparatingVelocity - separatingVelocity;
+                const impulse = separatingVelocityDiff / (1 / p1.mass + 1 / p2.mass);
+                const impulseVector = normal.multiply(impulse);
+
+                p1.velocity = p1.velocity.add(impulseVector.divide(p1.mass));
+                p2.velocity = p2.velocity.subtract(impulseVector.divide(p2.mass));
+            }
+
+            update(dt) {
+                this.applyGravity();
+                this.applyFriction();
+                this.applyForceField();
+                this.checkBoundaryCollisions();
+                this.checkParticleCollisions();
+
+                this.particles.forEach(particle => {
+                    particle.update(dt);
+                });
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                if (this.colorMode === 'velocity') {
+                    this.particles.forEach(particle => {
+                        const speed = particle.velocity.magnitude();
+                        const hue = (speed * 10) % 360;
+                        particle.color = `hsl(${hue}, 100%, 50%)`;
+                    });
+                } else if (this.colorMode === 'position') {
+                    this.particles.forEach(particle => {
+                        const x = particle.position.x / this.canvas.width;
+                        const y = particle.position.y / this.canvas.height;
+                        const hue = (x * 180 + y * 180) % 360;
+                        particle.color = `hsl(${hue}, 100%, 50%)`;
+                    });
+                }
+
+                this.particles.forEach(particle => {
+                    particle.draw(this.ctx);
+                });
+            }
+        }
+
+        const canvas = document.getElementById('particleCanvas');
+        const particleSystem = new ParticleSystem(canvas);
+
+        const particleCountSlider = document.getElementById('particleCount');
+        const particleCountValue = document.getElementById('particleCountValue');
+        const gravitySlider = document.getElementById('gravity');
+        const gravityValue = document.getElementById('gravityValue');
+        const frictionSlider = document.getElementById('friction');
+        const frictionValue = document.getElementById('frictionValue');
+        const elasticitySlider = document.getElementById('elasticity');
+        const elasticityValue = document.getElementById('elasticityValue');
+        const forceFieldStrengthSlider = document.getElementById('forceFieldStrength');
+        const forceFieldStrengthValue = document.getElementById('forceFieldStrengthValue');
+        const resetButton = document.getElementById('resetSimulation');
+        const toggleColorModeButton = document.getElementById('toggleColorMode');
+        const fpsValue = document.getElementById('fpsValue');
+        const activeParticlesValue = document.getElementById('activeParticlesValue');
+        const totalCollisionsValue = document.getElementById('totalCollisionsValue');
+
+        particleCountSlider.addEventListener('input', () => {
+            const count = parseInt(particleCountSlider.value);
+            particleCountValue.textContent = count;
+            particleSystem.createParticles(count);
+        });
+
+        gravitySlider.addEventListener('input', () => {
+            const gravity = parseFloat(gravitySlider.value);
+            gravityValue.textContent = gravity.toFixed(1);
+            particleSystem.gravity = new Vector2D(0, gravity);
+        });
+
+        frictionSlider.addEventListener('input', () => {
+            const friction = parseFloat(frictionSlider.value);
+            frictionValue.textContent = friction.toFixed(3);
+            particleSystem.friction = friction;
+        });
+
+        elasticitySlider.addEventListener('input', () => {
+            const elasticity = parseFloat(elasticitySlider.value);
+            elasticityValue.textContent = elasticity.toFixed(2);
+            particleSystem.elasticity = elasticity;
+        });
+
+        forceFieldStrengthSlider.addEventListener('input', () => {
+            const strength = parseInt(forceFieldStrengthSlider.value);
+            forceFieldStrengthValue.textContent = strength;
+            particleSystem.forceFieldStrength = strength;
+        });
+
+        resetButton.addEventListener('click', () => {
+            particleSystem.createParticles(parseInt(particleCountSlider.value));
+            particleSystem.totalCollisions = 0;
+        });
+
+        toggleColorModeButton.addEventListener('click', () => {
+            const modes = ['random', 'velocity', 'position'];
+            const currentIndex = modes.indexOf(particleSystem.colorMode);
+            particleSystem.colorMode = modes[(currentIndex + 1) % modes.length];
+        });
+
+        particleSystem.createParticles(parseInt(particleCountSlider.value));
+
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+
+        function gameLoop(currentTime) {
+            const dt = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            particleSystem.update(dt);
+            particleSystem.draw();
+
+            frameCount++;
+            if (currentTime - lastFpsUpdate > 1000) {
+                fpsValue.textContent = frameCount.toFixed(0);
+                activeParticlesValue.textContent = particleSystem.particles.length;
+                totalCollisionsValue.textContent = particleSystem.totalCollisions;
+                frameCount = 0;
+                lastFpsUpdate = currentTime;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
+
+This Interactive Particle Physics Simulator includes the following advanced features:
+
+1. A particle system with customizable parameters (particle count, gravity, friction, elasticity, and force field strength).
+2. Vector mathematics for accurate physics calculations.
+3. Collision detection and resolution between particles and boundaries.
+4. A central force field that attracts particles.
+5. Three different color modes for particles (random, velocity-based, and position-based).
+6. Real-time statistics display (FPS, active particles, and total collisions).
+7. Responsive design that adapts to window resizing.
+8. Efficient rendering using HTML5 Canvas.
+9. A user-friendly interface with sliders and buttons for adjusting simulation parameters.
+
+This application showcases advanced capabilities in physics simulation, interactive controls, and dynamic visualization. Users can experiment with different parameters to create unique particle behaviors and observe the resulting patterns and interactions.

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Particle Physics Simulator</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 1px solid #000;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: #fff;
+      border: 1px solid #000;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <div id="controls">
+    <label for="particle-type">Particle Type:</label>
+    <select id="particle-type">
+      <option value="electron">Electron</option>
+      <option value="proton">Proton</option>
+      <option value="neutron">Neutron</option>
+      <option value="photon">Photon</option>
+    </select>
+    <label for="energy">Energy:</label>
+    <input type="number" id="energy" value="100" min="0" max="1000">
+    <button id="add-particle">Add Particle</button>
+    <button id="clear-particles">Clear Particles</button>
+  </div>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const controls = document.getElementById('controls');
+    const particleTypeSelect = document.getElementById('particle-type');
+    const energyInput = document.getElementById('energy');
+    const addParticleButton = document.getElementById('add-particle');
+    const clearParticlesButton = document.getElementById('clear-particles');
+    let particles = [];
+    let lastTime = 0;
+
+    addParticleButton.addEventListener('click', () => {
+      const particleType = particleTypeSelect.value;
+      const energy = parseFloat(energyInput.value);
+      const particle = createParticle(particleType, energy);
+      particles.push(particle);
+    });
+
+    clearParticlesButton.addEventListener('click', () => {
+      particles = [];
+    });
+
+    function createParticle(type, energy) {
+      let x, y, vx, vy;
+      switch (type) {
+        case 'electron':
+          x = canvas.width / 2 + Math.random() * 100 - 50;
+          y = canvas.height / 2 + Math.random() * 100 - 50;
+          vx = Math.random() * 2 - 1;
+          vy = Math.random() * 2 - 1;
+          break;
+        case 'proton':
+          x = canvas.width / 2 + Math.random() * 50 - 25;
+          y = canvas.height / 2 + Math.random() * 50 - 25;
+          vx = Math.random() * 1 - 0.5;
+          vy = Math.random() * 1 - 0.5;
+          break;
+        case 'neutron':
+          x = canvas.width / 2 + Math.random() * 100 - 50;
+          y = canvas.height / 2 + Math.random() * 100 - 50;
+          vx = Math.random() * 2 - 1;
+          vy = Math.random() * 2 - 1;
+          break;
+        case 'photon':
+          x = canvas.width / 2 + Math.random() * 50 - 25;
+          y = canvas.height / 2 + Math.random() * 50 - 25;
+          vx = Math.random() * 2 - 1;
+          vy = Math.random() * 2 - 1;
+          break;
+      }
+      const particle = {
+        x,
+        y,
+        vx,
+        vy,
+        energy,
+        radius: 5,
+      };
+      return particle;
+    }
+
+    function simulate(particles) {
+      const dt = 1 / 60;
+      for (let i = 0; i < particles.length; i++) {
+        const particle = particles[i];
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        if (particle.x + particle.radius > canvas.width || particle.x - particle.radius < 0) {
+          particle.vx = -particle.vx;
+        }
+        if (particle.y + particle.radius > canvas.height || particle.y - particle.radius < 0) {
+          particle.vy = -particle.vy;
+        }
+      }
+    }
+
+    function render(particles) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0;

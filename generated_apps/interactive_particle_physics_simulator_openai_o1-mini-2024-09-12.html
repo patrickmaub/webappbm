@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Particle Physics Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 300px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #sidebar h2 {
+            margin-top: 0;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        #controls label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        #controls input, #controls select, #controls button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            border: none;
+            border-radius: 4px;
+        }
+        #controls button {
+            background-color: #e74c3c;
+            color: #ecf0f1;
+            cursor: pointer;
+        }
+        #controls button:hover {
+            background-color: #c0392b;
+        }
+        #canvas-container {
+            flex: 1;
+            position: relative;
+        }
+        canvas {
+            background-color: #34495e;
+            display: block;
+        }
+        /* Tooltip styling */
+        .tooltip {
+            position: absolute;
+            background-color: rgba(44, 62, 80, 0.9);
+            color: #ecf0f1;
+            padding: 5px 10px;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 12px;
+            display: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Particle Physics Simulator</h2>
+        <div id="controls">
+            <label for="particleType">Particle Type:</label>
+            <select id="particleType">
+                <option value="electron">Electron</option>
+                <option value="proton">Proton</option>
+                <option value="neutron">Neutron</option>
+                <option value="photon">Photon</option>
+            </select>
+
+            <label for="particleMass">Mass (kg):</label>
+            <input type="number" id="particleMass" value="9.109e-31" step="any">
+
+            <label for="particleCharge">Charge (C):</label>
+            <input type="number" id="particleCharge" value="-1.602e-19" step="any">
+
+            <label for="gravity">Gravitational Constant (G):</label>
+            <input type="number" id="gravity" value="6.67430e-11" step="any">
+
+            <button id="startBtn">Start Simulation</button>
+            <button id="pauseBtn">Pause Simulation</button>
+            <button id="resetBtn">Reset Simulation</button>
+        </div>
+        <div>
+            <h3>Instructions:</h3>
+            <ul>
+                <li>Select a particle type and set its properties.</li>
+                <li>Click on the canvas to add particles.</li>
+                <li>Use the controls to start, pause, or reset the simulation.</li>
+                <li>Observe particle interactions based on physics principles.</li>
+            </ul>
+        </div>
+    </div>
+    <div id="canvas-container">
+        <canvas id="simulationCanvas"></canvas>
+        <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const sidebar = document.getElementById('sidebar');
+        const particleTypeSelect = document.getElementById('particleType');
+        const particleMassInput = document.getElementById('particleMass');
+        const particleChargeInput = document.getElementById('particleCharge');
+        const gravityInput = document.getElementById('gravity');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const tooltip = document.getElementById('tooltip');
+
+        // Set canvas dimensions
+        function resizeCanvas() {
+            canvas.width = window.innerWidth - sidebar.offsetWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Particle class
+        class Particle {
+            constructor(x, y, type, mass, charge) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.mass = mass;
+                this.charge = charge;
+                this.radius = this.getRadius();
+                this.color = this.getColor();
+                this.vx = (Math.random() - 0.5) * 50; // Initial velocity x
+                this.vy = (Math.random() - 0.5) * 50; // Initial velocity y
+                this.ax = 0;
+                this.ay = 0;
+            }
+
+            getRadius() {
+                // Simplified radius based on mass
+                return Math.cbrt(this.mass) * 1e15;
+            }
+
+            getColor() {
+                switch (this.type) {
+                    case 'electron':
+                        return '#3498db';
+                    case 'proton':
+                        return '#e74c3c';
+                    case 'neutron':
+                        return '#95a5a6';
+                    case 'photon':
+                        return '#f1c40f';
+                    default:
+                        return '#ffffff';
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            update(dt, particles, G, k) {
+                // Reset acceleration
+                this.ax = 0;
+                this.ay = 0;
+
+                // Calculate forces from other particles
+                particles.forEach(other => {
+                    if (other === this) return;
+                    let dx = other.x - this.x;
+                    let dy = other.y - this.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance === 0) return;
+
+                    // Gravitational force
+                    let Fg = (G * this.mass * other.mass) / (distance * distance);
+                    let Fx = Fg * dx / distance;
+                    let Fy = Fg * dy / distance;
+
+                    // Electrostatic force
+                    let Fe = (k * this.charge * other.charge) / (distance * distance);
+                    Fx += Fe * dx / distance;
+                    Fy += Fe * dy / distance;
+
+                    // Apply to acceleration
+                    this.ax += Fx / this.mass;
+                    this.ay += Fy / this.mass;
+                });
+
+                // Update velocity
+                this.vx += this.ax * dt;
+                this.vy += this.ay * dt;
+
+                // Update position
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+
+                // Boundary conditions
+                if (this.x - this.radius < 0) {
+                    this.x = this.radius;
+                    this.vx *= -0.9;
+                } else if (this.x + this.radius > canvas.width) {
+                    this.x = canvas.width - this.radius;
+                    this.vx *= -0.9;
+                }
+
+                if (this.y - this.radius < 0) {
+                    this.y = this.radius;
+                    this.vy *= -0.9;
+                } else if (this.y + this.radius > canvas.height) {
+                    this.y = canvas.height - this.radius;
+                    this.vy *= -0.9;
+                }
+            }
+        }
+
+        // Simulation variables
+        let particles = [];
+        let animationId;
+        let running = false;
+        const k = 8.988e9; // Coulomb's constant
+
+        // Add particle on canvas click
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const type = particleTypeSelect.value;
+            const mass = parseFloat(particleMassInput.value);
+            const charge = parseFloat(particleChargeInput.value);
+            particles.push(new Particle(x, y, type, mass, charge));
+        });
+
+        // Start simulation
+        startBtn.addEventListener('click', () => {
+            if (!running) {
+                running = true;
+                lastTime = performance.now();
+                animate();
+            }
+        });
+
+        // Pause simulation
+        pauseBtn.addEventListener('click', () => {
+            running = false;
+            cancelAnimationFrame(animationId);
+        });
+
+        // Reset simulation
+        resetBtn.addEventListener('click', () => {
+            running = false;
+            cancelAnimationFrame(animationId);
+            particles = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Animation loop
+        let lastTime = 0;
+        function animate(time) {
+            if (!running) return;
+            animationId = requestAnimationFrame(animate);
+            const dt = (time - lastTime) / 1000; // Delta time in seconds
+            lastTime = time;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const G = parseFloat(gravityInput.value);
+
+            // Update and draw particles
+            particles.forEach(p => {
+                p.update(dt, particles, G, k);
+                p.draw(ctx);
+            });
+
+            // Handle collisions
+            handleCollisions();
+        }
+
+        // Handle collisions between particles
+        function handleCollisions() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let p1 = particles[i];
+                    let p2 = particles[j];
+                    let dx = p2.x - p1.x;
+                    let dy = p2.y - p1.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < p1.radius + p2.radius) {
+                        // Simple elastic collision response
+                        let angle = Math.atan2(dy, dx);
+                        let totalMass = p1.mass + p2.mass;
+                        let v1 = Math.sqrt(p1.vx * p1.vx + p1.vy * p1.vy);
+                        let v2 = Math.sqrt(p2.vx * p2.vx + p2.vy * p2.vy);
+
+                        // Update velocities
+                        let vx1 = ((p1.mass - p2.mass) * p1.vx + 2 * p2.mass * p2.vx) / totalMass;
+                        let vy1 = ((p1.mass - p2.mass) * p1.vy + 2 * p2.mass * p2.vy) / totalMass;
+                        let vx2 = ((p2.mass - p1.mass) * p2.vx + 2 * p1.mass * p1.vx) / totalMass;
+                        let vy2 = ((p2.mass - p1.mass) * p2.vy + 2 * p1.mass * p1.vy) / totalMass;
+
+                        p1.vx = vx1;
+                        p1.vy = vy1;
+                        p2.vx = vx2;
+                        p2.vy = vy2;
+
+                        // Separate overlapping particles
+                        let overlap = p1.radius + p2.radius - distance;
+                        p1.x -= overlap / 2 * (dx / distance);
+                        p1.y -= overlap / 2 * (dy / distance);
+                        p2.x += overlap / 2 * (dx / distance);
+                        p2.y += overlap / 2 * (dy / distance);
+                    }
+                }
+            }
+        }
+
+        // Tooltip for particle info
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            let found = false;
+            for (let p of particles) {
+                let dx = p.x - mouseX;
+                let dy = p.y - mouseY;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < p.radius) {
+                    tooltip.style.left = `${e.clientX + 10}px`;
+                    tooltip.style.top = `${e.clientY + 10}px`;
+                    tooltip.innerHTML = `
+                        <strong>Type:</strong> ${p.type}<br>
+                        <strong>Mass:</strong> ${p.mass} kg<br>
+                        <strong>Charge:</strong> ${p.charge} C<br>
+                        <strong>Velocity:</strong> (${p.vx.toFixed(2)}, ${p.vy.toFixed(2)}) m/s
+                    `;
+                    tooltip.style.display = 'block';
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                tooltip.style.display = 'none';
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+
+        // Initial draw
+        ctx.fillStyle = '#34495e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>

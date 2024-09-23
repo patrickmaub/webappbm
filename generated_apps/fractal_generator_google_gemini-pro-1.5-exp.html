@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Generator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: sans-serif;
+        }
+
+        #canvasContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #fractalCanvas {
+            display: block;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvasContainer">
+    <canvas id="fractalCanvas"></canvas>
+    <div id="controls">
+        <h2>Fractal Generator</h2>
+        <label for="fractalType">Fractal Type:</label>
+        <select id="fractalType">
+            <option value="mandelbrot">Mandelbrot Set</option>
+            <option value="julia">Julia Set</option>
+        </select>
+
+        <label for="realOffset">Real Offset:</label>
+        <input type="range" id="realOffset" min="-2" max="2" step="0.01" value="0">
+
+        <label for="imagOffset">Imaginary Offset:</label>
+        <input type="range" id="imagOffset" min="-2" max="2" step="0.01" value="0">
+
+        <label for="zoom">Zoom:</label>
+        <input type="range" id="zoom" min="1" max="500" step="1" value="1">
+
+        <label for="maxIterations">Max Iterations:</label>
+        <input type="range" id="maxIterations" min="10" max="500" step="1" value="100">
+
+        <label for="colorScheme">Color Scheme:</label>
+        <select id="colorScheme">
+            <option value="rainbow">Rainbow</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="fire">Fire</option>
+        </select>
+        
+        <label for="juliaReal">Julia Real (Julia Set Only):</label>
+        <input type="range" id="juliaReal" min="-1.5" max="1.5" step="0.01" value="-0.4">
+
+        <label for="juliaImag">Julia Imaginary (Julia Set Only):</label>
+        <input type="range" id="juliaImag" min="-1.5" max="1.5" step="0.01" value="0.6">
+
+        <button id="renderButton">Render Fractal</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('fractalCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const fractalTypeSelect = document.getElementById('fractalType');
+    const realOffsetSlider = document.getElementById('realOffset');
+    const imagOffsetSlider = document.getElementById('imagOffset');
+    const zoomSlider = document.getElementById('zoom');
+    const maxIterationsSlider = document.getElementById('maxIterations');
+    const colorSchemeSelect = document.getElementById('colorScheme');
+    const juliaRealSlider = document.getElementById('juliaReal');
+    const juliaImagSlider = document.getElementById('juliaImag');
+    const renderButton = document.getElementById('renderButton');
+
+    let fractalType = fractalTypeSelect.value;
+    let realOffset = parseFloat(realOffsetSlider.value);
+    let imagOffset = parseFloat(imagOffsetSlider.value);
+    let zoom = parseInt(zoomSlider.value);
+    let maxIterations = parseInt(maxIterationsSlider.value);
+    let colorScheme = colorSchemeSelect.value;
+    let juliaReal = parseFloat(juliaRealSlider.value);
+    let juliaImag = parseFloat(juliaImagSlider.value);
+
+    function renderFractal() {
+        for (let x = 0; x < canvas.width; x++) {
+            for (let y = 0; y < canvas.height; y++) {
+                let cReal, cImag;
+
+                if (fractalType === 'mandelbrot') {
+                    cReal = map(x, 0, canvas.width, -2.5 / zoom + realOffset, 1 / zoom + realOffset);
+                    cImag = map(y, 0, canvas.height, -1.5 / zoom + imagOffset, 1.5 / zoom + imagOffset);
+                } else if (fractalType === 'julia') {
+                    cReal = juliaReal;
+                    cImag = juliaImag;
+                }
+
+                let zReal = map(x, 0, canvas.width, -2.5 / zoom + realOffset, 1 / zoom + realOffset);
+                let zImag = map(y, 0, canvas.height, -1.5 / zoom + imagOffset, 1.5 / zoom + imagOffset);
+
+                let n = 0;
+                while (n < maxIterations && zReal * zReal + zImag * zImag < 4) {
+                    let zRealNew = zReal * zReal - zImag * zImag + cReal;
+                    let zImagNew = 2 * zReal * zImag + cImag;
+                    zReal = zRealNew;
+                    zImag = zImagNew;
+                    n++;
+                }
+
+                let color;
+                if (n === maxIterations) {
+                    color = 'black'; 
+                } else {
+                    color = getColor(n, maxIterations, colorScheme);
+                }
+
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 1, 1);
+            }
+        }
+    }
+
+    function map(value, start1, stop1, start2, stop2) {
+        return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
+    }
+
+    function getColor(n, maxIterations, scheme) {
+        if (scheme === 'rainbow') {
+            let hue = parseInt(map(n, 0, maxIterations, 0, 360));
+            return `hsl(${hue}, 100%, 50%)`;
+        } else if (scheme === 'grayscale') {
+            let brightness = parseInt(map(n, 0, maxIterations, 0, 255));
+            return `rgb(${brightness}, ${brightness}, ${brightness})`;
+        } else if (scheme === 'fire') {
+            let red = parseInt(map(n, 0, maxIterations, 0, 255));
+            let green = parseInt(map(n, 0, maxIterations, 0, 150));
+            let blue = parseInt(map(n, 0, maxIterations, 0, 50));
+            return `rgb(${red}, ${green}, ${blue})`;
+        }
+    }
+
+    fractalTypeSelect.addEventListener('change', () => {
+        fractalType = fractalTypeSelect.value;
+        renderFractal();
+    });
+
+    realOffsetSlider.addEventListener('input', () => {
+        realOffset = parseFloat(realOffsetSlider.value);
+        renderFractal();
+    });
+
+    imagOffsetSlider.addEventListener('input', () => {
+        imagOffset = parseFloat(imagOffsetSlider.value);
+        renderFractal();
+    });
+
+    zoomSlider.addEventListener('input', () => {
+        zoom = parseInt(zoomSlider.value);
+        renderFractal();
+    });
+
+    maxIterationsSlider.addEventListener('input', () => {
+        maxIterations = parseInt(maxIterationsSlider.value);
+        renderFractal();
+    });
+
+    colorSchemeSelect.addEventListener('change', () => {
+        colorScheme = colorSchemeSelect.value;
+        renderFractal();
+    });
+
+    juliaRealSlider.addEventListener('input', () => {
+        juliaReal = parseFloat(juliaRealSlider.value);
+        renderFractal();
+    });
+
+    juliaImagSlider.addEventListener('input', () => {
+        juliaImag = parseFloat(juliaImagSlider.value);
+        renderFractal();
+    });
+
+    renderButton.addEventListener('click', () => {
+        renderFractal();
+    });
+
+    renderFractal(); // Initial rendering
+
+</script>
+
+</body>
+</html>

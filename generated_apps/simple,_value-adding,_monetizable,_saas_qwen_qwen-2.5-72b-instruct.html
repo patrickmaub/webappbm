@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster - Project Management Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .project-list {
+            list-style: none;
+            padding: 0;
+        }
+        .project-list li {
+            background-color: #e9ecef;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+        .task-list li {
+            background-color: #e9ecef;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>TaskMaster</h1>
+        <p>Your Ultimate Project Management Tool</p>
+    </header>
+    <div class="container">
+        <div id="auth-section">
+            <h2>Sign In</h2>
+            <form id="signInForm">
+                <div class="form-group">
+                    <label for="signInEmail">Email</label>
+                    <input type="email" id="signInEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="signInPassword">Password</label>
+                    <input type="password" id="signInPassword" required>
+                </div>
+                <button type="submit" class="btn">Sign In</button>
+            </form>
+            <p>Don't have an account? <a href="#" id="showSignUp">Sign Up</a></p>
+        </div>
+
+        <div id="signUpSection" style="display: none;">
+            <h2>Sign Up</h2>
+            <form id="signUpForm">
+                <div class="form-group">
+                    <label for="signUpName">Name</label>
+                    <input type="text" id="signUpName" required>
+                </div>
+                <div class="form-group">
+                    <label for="signUpEmail">Email</label>
+                    <input type="email" id="signUpEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="signUpPassword">Password</label>
+                    <input type="password" id="signUpPassword" required>
+                </div>
+                <button type="submit" class="btn">Sign Up</button>
+            </form>
+            <p>Already have an account? <a href="#" id="showSignIn">Sign In</a></p>
+        </div>
+
+        <div id="mainSection" style="display: none;">
+            <h2>Your Projects</h2>
+            <button id="addProjectBtn" class="btn">Add Project</button>
+            <ul id="projectList" class="project-list"></ul>
+
+            <div id="addProjectModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" id="closeAddProjectModal">&times;</span>
+                    <h3>Add New Project</h3>
+                    <form id="addProjectForm">
+                        <div class="form-group">
+                            <label for="projectName">Project Name</label>
+                            <input type="text" id="projectName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectDescription">Description</label>
+                            <textarea id="projectDescription" required></textarea>
+                        </div>
+                        <button type="submit" class="btn">Add Project</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="projectDetailsModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" id="closeProjectDetailsModal">&times;</span>
+                    <h3 id="projectTitle"></h3>
+                    <p id="projectDescription"></p>
+                    <h4>Tasks</h4>
+                    <button id="addTaskBtn" class="btn">Add Task</button>
+                    <ul id="taskList" class="task-list"></ul>
+
+                    <div id="addTaskModal" class="modal">
+                        <div class="modal-content">
+                            <span class="close" id="closeAddTaskModal">&times;</span>
+                            <h3>Add New Task</h3>
+                            <form id="addTaskForm">
+                                <div class="form-group">
+                                    <label for="taskName">Task Name</label>
+                                    <input type="text" id="taskName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="taskDescription">Description</label>
+                                    <textarea id="taskDescription" required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="taskDueDate">Due Date</label>
+                                    <input type="date" id="taskDueDate" required>
+                                </div>
+                                <button type="submit" class="btn">Add Task</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="subscriptionSection" style="display: none;">
+            <h2>Subscription Plans</h2>
+            <div class="plan">
+                <h3>Free</h3>
+                <p>Up to 3 projects</p>
+                <p>10 tasks per project</p>
+                <button class="btn" id="selectFreePlan">Select</button>
+            </div>
+            <div class="plan">
+                <h3>Premium</h3>
+                <p>Unlimited projects</p>
+                <p>Unlimited tasks</p>
+                <p>Priority support</p>
+                <button class="btn" id="selectPremiumPlan">Select</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentProject = null;
+
+        const signInForm = document.getElementById('signInForm');
+        const signUpForm = document.getElementById('signUpForm');
+        const addProjectBtn = document.getElementById('addProjectBtn');
+        const addProjectModal = document.getElementById('addProjectModal');
+        const addProjectForm = document.getElementById('addProjectForm');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const addTaskModal = document.getElementById('addTaskModal');
+        const addTaskForm = document.getElementById('addTaskForm');
+        const projectList = document.getElementById('projectList');
+        const projectDetailsModal = document.getElementById('projectDetailsModal');
+        const taskList = document.getElementById('taskList');
+        const showSignUp = document.getElementById('showSignUp');
+        const showSignIn = document.getElementById('showSignIn');
+        const selectFreePlan = document.getElementById('selectFreePlan');
+        const selectPremiumPlan = document.getElementById('selectPremiumPlan');
+
+        const authSection = document.getElementById('auth-section');
+        const mainSection = document.getElementById('mainSection');
+        const subscriptionSection = document.getElementById('subscriptionSection');
+
+        const closeAddProjectModal = document.getElementById('closeAddProjectModal');
+        const closeProjectDetailsModal = document.getElementById('closeProjectDetailsModal');
+        const closeAddTaskModal = document.getElementById('closeAddTaskModal');
+
+        const projects = [
+            { id: 1, name: 'Project A', description: 'Description of Project A', tasks: [] },
+            { id: 2, name: 'Project B', description: 'Description of Project B', tasks: [] }
+        ];
+
+        function showMainSection() {
+            authSection.style.display = 'none';
+            mainSection.style.display = 'block';
+            subscriptionSection.style.display = 'none';
+            loadProjects();
+        }
+
+        function showSubscriptionSection() {
+            authSection.style.display = 'none';
+            mainSection.style.display = 'none';
+            subscriptionSection.style.display = 'block';
+        }
+
+        function loadProjects() {
+            projectList.innerHTML = '';
+            projects.forEach(project => {
+                const li = document.createElement('li');
+                li.textContent = project.name;
+                li.addEventListener('click', () => showProjectDetails(project));
+                projectList.appendChild(li);
+            });
+        }
+
+        function showProjectDetails(project) {
+            currentProject = project;
+            document.getElementById('projectTitle').textContent = project.name;
+            document.getElementById('projectDescription').textContent = project.description;
+            loadTasks(project);
+            projectDetailsModal.style.display = 'block';
+        }
+
+        function loadTasks(project) {
+            taskList.innerHTML = '';
+            project.tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.textContent = task.name;
+                taskList.appendChild(li);
+            });
+        }
+
+        function addProject() {
+            const projectName = document.getElementById('projectName').value;
+            const projectDescription = document.getElementById('projectDescription').value;
+            const newProject = { id: projects.length + 1, name: projectName, description: projectDescription, tasks: [] };
+            projects.push(newProject);
+            loadProjects();
+            addProjectModal.style.display = 'none';
+        }
+
+        function addTask() {
+            const taskName = document.getElementById('taskName').value;
+            const taskDescription = document.getElementById('taskDescription').value;
+            const taskDueDate = document.getElementById('taskDueDate').value;
+            const newTask = { name: taskName, description: taskDescription, dueDate: taskDueDate };
+            currentProject.tasks.push(newTask);
+            loadTasks(currentProject);
+            addTaskModal.style.display = 'none';
+        }
+
+        signInForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signInEmail').value;
+            const password = document.getElementById('signInPassword').value;
+            // Simulate user authentication
+            if (email === 'user@example.com' && password === 'password') {
+                currentUser = { name: 'John Doe', email: email };
+                showMainSection();
+            } else {
+                alert('Invalid credentials');
+            }
+        });
+
+        signUpForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('signUpName').value;
+            const email = document.getElementById('signUpEmail').value;
+            const password = document.getElementById('signUpPassword').value;
+            // Simulate user registration
+            currentUser = { name: name, email: email };
+            showMainSection();
+        });
+
+        addProjectBtn.addEventListener('click', () => addProjectModal.style.display = 'block');
+        addProjectForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            addProject();
+        });
+
+        addTaskBtn.addEventListener('click', () => addTaskModal.style.display = 'block');
+        addTaskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            addTask();
+        });
+
+        showSignUp.addEventListener('click', () => {
+            authSection.style.display = 'none';
+            signUpSection.style.display = 'block';
+        });
+
+        showSignIn.addEventListener('click', () => {
+            authSection.style.display = 'block';
+            signUpSection.style.display = 'none';
+        });
+
+        selectFreePlan.addEventListener('click', () => {
+            alert('You have selected the Free plan');
+            showMainSection();
+        });
+
+        selectPremiumPlan.addEventListener('click', () => {
+            alert('You have selected the Premium plan');
+            showMainSection();
+        });
+
+        closeAddProjectModal.addEventListener('click', () => addProjectModal.style.display = 'none');
+        closeProjectDetailsModal.addEventListener('click', () => projectDetailsModal.style.display = 'none');
+        closeAddTaskModal.addEventListener('click', () => addTaskModal.style.display = 'none');
+    </script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discrete Fourier Transform Audio Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            border: 1px solid black;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Discrete Fourier Transform Audio Visualizer</h1>
+    <canvas id="canvas" width="800" height="400"></canvas>
+    <div id="controls">
+        <button id="start-button">Start</button>
+        <button id="stop-button" disabled>Stop</button>
+        <input type="file" id="file-input" accept="audio/*">
+        <label for="mic-input">Use Microphone:</label>
+        <input type="checkbox" id="mic-input">
+    </div>
+
+    <script>
+        // Get the canvas and its 2D drawing context
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Get the control elements
+        const startButton = document.getElementById('start-button');
+        const stopButton = document.getElementById('stop-button');
+        const fileInput = document.getElementById('file-input');
+        const micInput = document.getElementById('mic-input');
+
+        // Create a Web Audio API context
+        const audioCtx = new AudioContext();
+
+        // Create an Analyser node
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        // Create a gain node to control the volume
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 1;
+
+        // Create a buffer source node for playing audio files
+        let source;
+
+        // Create a media stream source node for the microphone
+        let micSource;
+
+        // Define the drawing function
+        function draw() {
+            // Get the frequency data from the Analyser node
+            const freqData = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(freqData);
+
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the frequency spectrum
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            for (let i = 0; i < freqData.length; i++) {
+                const x = i * canvas.width / freqData.length;
+                const y = canvas.height - (freqData[i] * canvas.height / 256);
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fill();
+
+            // Draw the frequency bins
+            ctx.beginPath();
+            for (let i = 0; i < freqData.length; i++) {
+                const x = i * canvas.width / freqData.length;
+                ctx.moveTo(x, canvas.height);
+                ctx.lineTo(x, canvas.height - (freqData[i] * canvas.height / 256));
+            }
+            ctx.strokeStyle = 'black';
+            ctx.stroke();
+
+            // Request the next frame
+            requestAnimationFrame(draw);
+        }
+
+        // Define the function to start the visualization
+        function start() {
+            // Connect the nodes
+            if (micInput.checked) {
+                // Use the microphone
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                   .then(stream => {
+                        micSource = audioCtx.createMediaStreamSource(stream);
+                        micSource.connect(gainNode);
+                        gainNode.connect(analyser);
+                        analyser.connect(audioCtx.destination);
+                    })
+                   .catch(error => console.error('Error:', error));
+            } else if (fileInput.files.length > 0) {
+                // Play the selected audio file
+                audioCtx.decodeAudioData(fileInput.files[0])
+                   .then(buffer => {
+                        source = audioCtx.createBufferSource();
+                        source.connect(gainNode);
+                        gainNode.connect(analyser);
+                        analyser.connect(audioCtx.destination);
+                        source.start();
+                    })
+                   .catch(error => console.error('Error:', error));
+            }
+
+            // Start drawing
+            draw();
+
+            // Enable the stop button
+            stopButton.disabled = false;
+            startButton.disabled = true;
+        }
+
+        // Define the function to stop the visualization
+        function stop() {
+            // Disconnect the nodes
+            if (micSource) {
+                micSource.disconnect();
+                micSource = null;
+            }
+            if (source) {
+                source.stop();
+                source.disconnect();
+                source = null;
+            }
+
+            // Stop drawing
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Enable the start button
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        }
+
+        // Add event listeners to the buttons
+        startButton.addEventListener('click', start);
+        stopButton.addEventListener('click', stop);
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                startButton.disabled = false;
+            } else {
+                startButton.disabled = true;
+            }
+        });
+        micInput.addEventListener('change', () => {
+            if (micInput.checked) {
+                fileInput.disabled = true;
+            } else {
+                fileInput.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

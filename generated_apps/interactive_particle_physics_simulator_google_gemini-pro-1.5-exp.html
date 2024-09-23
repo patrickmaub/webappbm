@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Interactive Particle Physics Simulator</title>
+<style>
+body { margin: 0; overflow: hidden; }
+canvas { display: block; }
+#controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+}
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <h2>Particle Simulator</h2>
+  <label for="numParticles">Number of Particles:</label>
+  <input type="number" id="numParticles" value="100" min="1" max="500"><br><br>
+  <label for="gravity">Gravity:</label>
+  <input type="range" id="gravity" value="0.1" min="0" max="1" step="0.01"><br><br>
+  <label for="interactionStrength">Interaction Strength:</label>
+  <input type="range" id="interactionStrength" value="0.5" min="-1" max="1" step="0.01"><br><br>
+  <button id="resetBtn">Reset</button>
+</div>
+
+<canvas id="myCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('myCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const numParticlesInput = document.getElementById('numParticles');
+const gravityInput = document.getElementById('gravity');
+const interactionStrengthInput = document.getElementById('interactionStrength');
+const resetBtn = document.getElementById('resetBtn');
+
+let particles = [];
+let numParticles = parseInt(numParticlesInput.value);
+let gravity = parseFloat(gravityInput.value);
+let interactionStrength = parseFloat(interactionStrengthInput.value);
+
+function Particle(x, y, radius, color) {
+  this.x = x;
+  this.y = y;
+  this.radius = radius;
+  this.color = color;
+  this.vx = (Math.random() - 0.5) * 2; // Initial velocity
+  this.vy = (Math.random() - 0.5) * 2; 
+}
+
+Particle.prototype.draw = function() {
+  ctx.beginPath();
+  ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+  ctx.fillStyle = this.color;
+  ctx.fill();
+};
+
+Particle.prototype.update = function() {
+  this.vy += gravity; // Apply gravity
+
+  // Particle interaction (simplified)
+  for (let i = 0; i < particles.length; i++) {
+    if (this !== particles[i]) {
+      const dx = this.x - particles[i].x;
+      const dy = this.y - particles[i].y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < this.radius + particles[i].radius + 5) { // Collision detection with a small buffer
+        const force = interactionStrength / distance;
+        this.vx += dx * force;
+        this.vy += dy * force;
+      }
+    }
+  }
+
+  this.x += this.vx;
+  this.y += this.vy;
+
+  // Bounce off walls
+  if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+    this.vx = -this.vx;
+  }
+  if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+    this.vy = -this.vy;
+  }
+};
+
+function init() {
+  particles = [];
+  for (let i = 0; i < numParticles; i++) {
+    const radius = Math.random() * 10 + 5;
+    const x = Math.random() * (canvas.width - radius * 2) + radius;
+    const y = Math.random() * (canvas.height - radius * 2) + radius;
+    const color = `hsl(${Math.random() * 360}, 50%, 50%)`;
+    particles.push(new Particle(x, y, radius, color));
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < particles.length; i++) {
+    particles[i].update();
+    particles[i].draw();
+  }
+}
+
+numParticlesInput.addEventListener('change', () => {
+  numParticles = parseInt(numParticlesInput.value);
+  init();
+});
+
+gravityInput.addEventListener('input', () => {
+  gravity = parseFloat(gravityInput.value);
+});
+
+interactionStrengthInput.addEventListener('input', () => {
+  interactionStrength = parseFloat(interactionStrengthInput.value);
+});
+
+resetBtn.addEventListener('click', () => {
+  init();
+});
+
+init();
+animate();
+</script>
+
+</body>
+</html>

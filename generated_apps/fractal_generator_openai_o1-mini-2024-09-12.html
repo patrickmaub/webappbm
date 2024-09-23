@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Fractal Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Reset and Basic Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+        }
+
+        /* Container */
+        #container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 300px;
+            background-color: #2e2e2e;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        #sidebar h2 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .control-group input[type="range"],
+        .control-group select,
+        .control-group input[type="color"] {
+            width: 100%;
+            padding: 5px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .control-group input[type="number"] {
+            width: 100%;
+            padding: 5px;
+            border: none;
+            border-radius: 4px;
+            text-align: right;
+        }
+
+        #buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        #buttons button {
+            flex: 1;
+            padding: 10px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #buttons button:hover {
+            background-color: #45a049;
+        }
+
+        /* Canvas */
+        #fractal-canvas {
+            flex: 1;
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #sidebar {
+                width: 100%;
+                height: 300px;
+                overflow-y: scroll;
+            }
+
+            #container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h2>Fractal Generator</h2>
+            <div class="control-group">
+                <label for="fractal-type">Fractal Type</label>
+                <select id="fractal-type">
+                    <option value="mandelbrot">Mandelbrot</option>
+                    <option value="julia">Julia</option>
+                    <option value="burning-ship">Burning Ship</option>
+                </select>
+            </div>
+            <div class="control-group" id="julia-controls" style="display: none;">
+                <label for="julia-real">Julia Constant - Real:</label>
+                <input type="number" id="julia-real" value="-0.7" step="0.01">
+                <label for="julia-imag">Julia Constant - Imaginary:</label>
+                <input type="number" id="julia-imag" value="0.27015" step="0.01">
+            </div>
+            <div class="control-group">
+                <label for="iterations">Iterations:</label>
+                <input type="range" id="iterations" min="50" max="1000" value="300">
+                <span id="iter-value">300</span>
+            </div>
+            <div class="control-group">
+                <label for="color-scheme">Color Scheme:</label>
+                <select id="color-scheme">
+                    <option value="classic">Classic</option>
+                    <option value="fire">Fire</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="forest">Forest</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="control-group" id="custom-colors" style="display: none;">
+                <label>Custom Colors:</label>
+                <input type="color" id="color1" value="#000764">
+                <input type="color" id="color2" value="#2068b3">
+                <input type="color" id="color3" value="#edffff">
+            </div>
+            <div id="buttons">
+                <button id="reset-button">Reset</button>
+                <button id="save-button">Save</button>
+            </div>
+        </div>
+        <canvas id="fractal-canvas"></canvas>
+    </div>
+
+    <script>
+        // Get Elements
+        const canvas = document.getElementById('fractal-canvas');
+        const ctx = canvas.getContext('2d');
+        const fractalType = document.getElementById('fractal-type');
+        const juliaControls = document.getElementById('julia-controls');
+        const juliaReal = document.getElementById('julia-real');
+        const juliaImag = document.getElementById('julia-imag');
+        const iterationsSlider = document.getElementById('iterations');
+        const iterValue = document.getElementById('iter-value');
+        const colorScheme = document.getElementById('color-scheme');
+        const customColors = document.getElementById('custom-colors');
+        const color1 = document.getElementById('color1');
+        const color2 = document.getElementById('color2');
+        const color3 = document.getElementById('color3');
+        const resetButton = document.getElementById('reset-button');
+        const saveButton = document.getElementById('save-button');
+
+        // Canvas Size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth - sidebarWidth();
+            canvas.height = window.innerHeight;
+            renderFractal();
+        }
+
+        function sidebarWidth() {
+            const sidebar = document.getElementById('sidebar');
+            return sidebar.offsetWidth;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initial Canvas Size
+        resizeCanvas();
+
+        // Fractal Parameters
+        let params = {
+            type: 'mandelbrot',
+            julia: { real: -0.7, imag: 0.27015 },
+            iterations: 300,
+            colorScheme: 'classic',
+            customColors: ['#000764', '#2068b3', '#edffff'],
+            zoom: 1,
+            offsetX: 0,
+            offsetY: 0
+        };
+
+        // Update Iterations Display
+        iterationsSlider.addEventListener('input', () => {
+            params.iterations = parseInt(iterationsSlider.value);
+            iterValue.textContent = iterationsSlider.value;
+            renderFractal();
+        });
+
+        // Change Fractal Type
+        fractalType.addEventListener('change', () => {
+            params.type = fractalType.value;
+            juliaControls.style.display = params.type === 'julia' ? 'block' : 'none';
+            renderFractal();
+        });
+
+        // Update Julia Constants
+        juliaReal.addEventListener('input', () => {
+            params.julia.real = parseFloat(juliaReal.value);
+            renderFractal();
+        });
+
+        juliaImag.addEventListener('input', () => {
+            params.julia.imag = parseFloat(juliaImag.value);
+            renderFractal();
+        });
+
+        // Change Color Scheme
+        colorScheme.addEventListener('change', () => {
+            params.colorScheme = colorScheme.value;
+            customColors.style.display = params.colorScheme === 'custom' ? 'block' : 'none';
+            renderFractal();
+        });
+
+        // Update Custom Colors
+        color1.addEventListener('input', updateCustomColors);
+        color2.addEventListener('input', updateCustomColors);
+        color3.addEventListener('input', updateCustomColors);
+
+        function updateCustomColors() {
+            params.customColors = [color1.value, color2.value, color3.value];
+            renderFractal();
+        }
+
+        // Reset View
+        resetButton.addEventListener('click', () => {
+            params.zoom = 1;
+            params.offsetX = 0;
+            params.offsetY = 0;
+            iterationsSlider.value = 300;
+            iterValue.textContent = '300';
+            fractalType.value = 'mandelbrot';
+            params.type = 'mandelbrot';
+            juliaControls.style.display = 'none';
+            colorScheme.value = 'classic';
+            params.colorScheme = 'classic';
+            customColors.style.display = 'none';
+            renderFractal();
+        });
+
+        // Save Image
+        saveButton.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'fractal.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        // Mouse Interaction for Zoom and Pan
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let dragEnd = { x: 0, y: 0 };
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStart.x = e.clientX;
+            dragStart.y = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                dragEnd.x = e.clientX;
+                dragEnd.y = e.clientY;
+                params.offsetX += (dragEnd.x - dragStart.x) / params.zoom;
+                params.offsetY += (dragEnd.y - dragStart.y) / params.zoom;
+                dragStart.x = dragEnd.x;
+                dragStart.y = dragEnd.y;
+                renderFractal();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomIntensity = 0.1;
+            if (e.deltaY < 0) {
+                params.zoom *= 1 + zoomIntensity;
+            } else {
+                params.zoom /= 1 + zoomIntensity;
+            }
+            renderFractal();
+        });
+
+        // Color Schemes
+        const colorSchemes = {
+            classic: (i, max) => {
+                let t = i / max;
+                let r = Math.round(9*(1-t)*t*t*t*255);
+                let g = Math.round(15*(1-t)*(1-t)*t*t*255);
+                let b = Math.round(8.5*(1-t)*(1-t)*(1-t)*t*255);
+                return `rgb(${r},${g},${b})`;
+            },
+            fire: (i, max) => {
+                let t = i / max;
+                let r = Math.min(255, Math.floor(255 * t));
+                let g = Math.min(255, Math.floor(128 * t));
+                let b = Math.min(255, Math.floor(64 * t));
+                return `rgb(${r},${g},${b})`;
+            },
+            ocean: (i, max) => {
+                let t = i / max;
+                let r = Math.floor(0 + 20 * t);
+                let g = Math.floor(24 + 230 * t);
+                let b = Math.floor(100 + 155 * t);
+                return `rgb(${r},${g},${b})`;
+            },
+            forest: (i, max) => {
+                let t = i / max;
+                let r = Math.floor(34 * t);
+                let g = Math.floor(139 * t);
+                let b = Math.floor(34 * t);
+                return `rgb(${r},${g},${b})`;
+            },
+            custom: (i, max, colors) => {
+                let t = i / max;
+                if (t === 1) return 'black';
+                let segments = colors.length - 1;
+                let scaledT = t * segments;
+                let index = Math.floor(scaledT);
+                let localT = scaledT - index;
+                if (index >= segments) {
+                    index = segments - 1;
+                    localT = 1;
+                }
+                const c1 = hexToRgb(colors[index]);
+                const c2 = hexToRgb(colors[index + 1]);
+                const r = Math.floor(c1.r + (c2.r - c1.r) * localT);
+                const g = Math.floor(c1.g + (c2.g - c1.g) * localT);
+                const b = Math.floor(c1.b + (c2.b - c1.b) * localT);
+                return `rgb(${r},${g},${b})`;
+            }
+        };
+
+        // Utility to Convert Hex to RGB
+        function hexToRgb(hex) {
+            let bigint = parseInt(hex.slice(1), 16);
+            let r = (bigint >> 16) & 255;
+            let g = (bigint >> 8) & 255;
+            let b = bigint & 255;
+            return { r, g, b };
+        }
+
+        // Render Fractal
+        function renderFractal() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+
+            const maxIter = params.iterations;
+            const type = params.type;
+            const zoom = params.zoom;
+            const offsetX = params.offsetX;
+            const offsetY = params.offsetY;
+            let julia = params.julia;
+
+            // Define the region of the complex plane to render
+            const aspectRatio = width / height;
+            const scale = 3 / zoom;
+            const xMin = -scale * aspectRatio + offsetX;
+            const xMax = scale * aspectRatio + offsetX;
+            const yMin = -scale + offsetY;
+            const yMax = scale + offsetY;
+
+            // Select Color Function
+            const getColor = (i, max) => {
+                if (params.colorScheme === 'custom') {
+                    return colorSchemes.custom(i, max, params.customColors);
+                } else {
+                    return colorSchemes[params.colorScheme](i, max);
+                }
+            };
+
+            // Iterate over each pixel
+            for (let px = 0; px < width; px++) {
+                for (let py = 0; py < height; py++) {
+                    // Convert pixel to complex number
+                    let x0 = xMin + (px / width) * (xMax - xMin);
+                    let y0 = yMin + (py / height) * (yMax - yMin);
+                    let x = 0;
+                    let y = 0;
+                    let iteration = 0;
+
+                    if (type === 'mandelbrot') {
+                        x = 0;
+                        y = 0;
+                        while (x*x + y*y <= 4 && iteration < maxIter) {
+                            let xtemp = x*x - y*y + x0;
+                            y = 2*x*y + y0;
+                            x = xtemp;
+                            iteration++;
+                        }
+                    } else if (type === 'julia') {
+                        x = x0;
+                        y = y0;
+                        while (x*x + y*y <= 4 && iteration < maxIter) {
+                            let xtemp = x*x - y*y + julia.real;
+                            y = 2*x*y + julia.imag;
+                            x = xtemp;
+                            iteration++;
+                        }
+                    } else if (type === 'burning-ship') {
+                        x = 0;
+                        y = 0;
+                        while (x*x + y*y <= 4 && iteration < maxIter) {
+                            let xtemp = x*x - y*y + x0;
+                            y = Math.abs(2*x*y) + y0;
+                            x = Math.abs(xtemp);
+                            iteration++;
+                        }
+                    }
+
+                    // Compute color
+                    const color = getColor(iteration, maxIter);
+                    const index = 4 * (py * width + px);
+                    if (iteration === maxIter) {
+                        data[index] = 0;
+                        data[index + 1] = 0;
+                        data[index + 2] = 0;
+                    } else {
+                        const rgb = color.match(/\d+/g);
+                        data[index] = parseInt(rgb[0]);
+                        data[index + 1] = parseInt(rgb[1]);
+                        data[index + 2] = parseInt(rgb[2]);
+                    }
+                    data[index + 3] = 255; // Alpha
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Initial Render
+        renderFractal();
+    </script>
+</body>
+</html>

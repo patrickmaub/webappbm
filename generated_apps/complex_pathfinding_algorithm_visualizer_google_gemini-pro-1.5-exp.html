@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Complex Pathfinding Algorithm Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .cell {
+      position: absolute;
+      background-color: white;
+      border: 1px solid #ccc;
+      transition: background-color 0.3s ease;
+    }
+
+    .start {
+      background-color: green;
+    }
+
+    .end {
+      background-color: red;
+    }
+
+    .wall {
+      background-color: black;
+    }
+
+    .path {
+      background-color: yellow;
+    }
+
+    .visited {
+      background-color: lightblue;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: default;
+    }
+
+    select {
+      margin: 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container">
+    <canvas id="grid"></canvas>
+    <div id="controls">
+      <label for="algorithm">Algorithm:</label>
+      <select id="algorithm">
+        <option value="dijkstra">Dijkstra's Algorithm</option>
+        <option value="aStar">A* Search</option>
+        <option value="bfs">Breadth-First Search</option>
+        <option value="dfs">Depth-First Search</option>
+        <!-- Add more algorithms here -->
+      </select>
+      <br>
+      <label for="heuristic">Heuristic (A* only):</label>
+      <select id="heuristic">
+        <option value="manhattan">Manhattan Distance</option>
+        <option value="euclidean">Euclidean Distance</option>
+        <!-- Add more heuristics here -->
+      </select>
+      <br>
+      <button id="startBtn">Start</button>
+      <button id="resetBtn">Reset</button>
+      <button id="clearWallsBtn">Clear Walls</button>
+      <button id="generateMazeBtn">Generate Maze</button>
+      <!-- Add more controls here -->
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('grid');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const clearWallsBtn = document.getElementById('clearWallsBtn');
+    const generateMazeBtn = document.getElementById('generateMazeBtn');
+    const algorithmSelect = document.getElementById('algorithm');
+    const heuristicSelect = document.getElementById('heuristic');
+
+    const cellSize = 20;
+    let gridWidth = Math.floor(window.innerWidth / cellSize);
+    let gridHeight = Math.floor(window.innerHeight / cellSize);
+    let grid = [];
+    let startCell, endCell;
+    let isRunning = false;
+
+    // Cell class
+    class Cell {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.isWall = false;
+        this.isStart = false;
+        this.isEnd = false;
+        this.isVisited = false;
+        this.parent = null;
+        this.gCost = Infinity; // Cost from start to this cell
+        this.hCost = 0; // Heuristic cost from this cell to end
+        this.fCost = Infinity; // Total cost (gCost + hCost)
+      }
+    }
+
+    // Initialize grid
+    function initializeGrid() {
+      grid = [];
+      for (let y = 0; y < gridHeight; y++) {
+        let row = [];
+        for (let x = 0; x < gridWidth; x++) {
+          row.push(new Cell(x, y));
+        }
+        grid.push(row);
+      }
+
+      // Set start and end cells
+      startCell = grid[Math.floor(gridHeight / 2)][Math.floor(gridWidth / 4)];
+      endCell = grid[Math.floor(gridHeight / 2)][Math.floor(gridWidth * 3 / 4)];
+      startCell.isStart = true;
+      endCell.isEnd = true;
+
+      canvas.width = gridWidth * cellSize;
+      canvas.height = gridHeight * cellSize;
+
+      drawGrid();
+    }
+
+    // Draw grid on canvas
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < gridHeight; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+          const cell = grid[y][x];
+          ctx.fillStyle = cell.isStart ? 'green' : cell.isEnd ? 'red' : cell.isWall ? 'black' : cell.isVisited ? 'lightblue' : 'white';
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          ctx.strokeStyle = '#ccc';
+          ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    // Get neighbors of a cell
+    function getNeighbors(cell) {
+      const neighbors = [];
+      const x = cell.x;
+      const y = cell.y;
+
+      if (x > 0) neighbors.push(grid[y][x - 1]);
+      if (x < gridWidth - 1) neighbors.push(grid[y][x + 1]);
+      if (y > 0) neighbors.push(grid[y - 1][x]);
+      if (y < gridHeight - 1) neighbors.push(grid[y + 1][x]);
+
+      // Add diagonal neighbors (optional)
+      // if (x > 0 && y > 0) neighbors.push(grid[y - 1][x - 1]);
+      // if (x < gridWidth - 1 && y > 0) neighbors.push(grid[y - 1][x + 1]);
+      // if (x > 0 && y < gridHeight - 1) neighbors.push(grid[y + 1][x - 1]);
+      // if (x < gridWidth - 1 && y < gridHeight - 1) neighbors.push(grid[y + 1][x + 1]);
+
+      return neighbors.filter(neighbor => !neighbor.isWall);
+    }
+
+    // Calculate Manhattan distance
+    function manhattanDistance(cell1, cell2) {
+      return Math.abs(cell1.x - cell2.x) + Math.abs(cell1.y - cell2.y);
+    }
+
+    // Calculate Euclidean distance
+    function euclideanDistance(cell1, cell2) {
+      return Math.sqrt(Math.pow(cell1.x - cell2.x, 2) + Math.pow(cell1.y - cell2.y, 2));
+    }
+
+    // Dijkstra's algorithm
+    async function dijkstra() {
+      startBtn.disabled = true;
+      resetBtn.disabled = true;
+
+      startCell.gCost = 0;
+      let openSet = [startCell];
+
+      while (openSet.length > 0) {
+        // Find cell with lowest gCost
+        openSet.sort((a, b) => a.gCost - b.gCost);
+        const currentCell = openSet.shift();
+
+        if (currentCell === endCell) {
+          // Path found
+          await highlightPath();
+          return;
+        }
+
+        currentCell.isVisited = true;
+        drawGrid();
+        await sleep(10); // Add delay for visualization
+
+        const neighbors = getNeighbors(currentCell);
+        for (const neighbor of neighbors) {
+          const tentativeGCost = currentCell.gCost + 1; // Assuming uniform cost
+          if (tentativeGCost < neighbor.gCost) {
+            neighbor.parent = currentCell;
+            neighbor.gCost = tentativeGCost;
+            if (!openSet.includes(neighbor)) {
+              openSet.push(neighbor);
+            }
+          }
+        }
+      }
+
+      // No path found
+      alert("No path found!");
+      startBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+
+    // A* search algorithm
+    async function aStar() {
+      startBtn.disabled = true;
+      resetBtn.disabled = true;
+
+      startCell.gCost = 0;
+      startCell.fCost = heuristic(startCell, endCell);
+      let openSet = [startCell];
+
+      while (openSet.length > 0) {
+        // Find cell with lowest fCost
+        openSet.sort((a, b) => a.fCost - b.fCost);
+        const currentCell = openSet.shift();
+
+        if (currentCell === endCell) {
+          // Path found
+          await highlightPath();
+          return;
+        }
+
+        currentCell.isVisited = true;
+        drawGrid();
+        await sleep(10); // Add delay for visualization
+
+        const neighbors = getNeighbors(currentCell);
+        for (const neighbor of neighbors) {
+          const tentativeGCost = currentCell.gCost + 1; // Assuming uniform cost
+          if (tentativeGCost < neighbor.gCost) {
+            neighbor.parent = currentCell;
+            neighbor.gCost = tentativeGCost;
+            neighbor.hCost = heuristic(neighbor, endCell);
+            neighbor.fCost = neighbor.gCost + neighbor.hCost;
+            if (!openSet.includes(neighbor)) {
+              openSet.push(neighbor);
+            }
+          }
+        }
+      }
+
+      // No path found
+      alert("No path found!");
+      startBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+    // Breadth-First Search (BFS) algorithm
+    async function bfs() {
+      startBtn.disabled = true;
+      resetBtn.disabled = true;
+
+      let queue = [startCell];
+      startCell.isVisited = true;
+
+      while (queue.length > 0) {
+        const currentCell = queue.shift();
+
+        if (currentCell === endCell) {
+          // Path found
+          await highlightPath();
+          return;
+        }
+
+        drawGrid();
+        await sleep(10); // Add delay for visualization
+
+        const neighbors = getNeighbors(currentCell);
+        for (const neighbor of neighbors) {
+          if (!neighbor.isVisited) {
+            neighbor.parent = currentCell;
+            neighbor.isVisited = true;
+            queue.push(neighbor);
+          }
+        }
+      }
+
+      // No path found
+      alert("No path found!");
+      startBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+    // Depth-First Search (DFS) algorithm
+    async function dfs() {
+      startBtn.disabled = true;
+      resetBtn.disabled = true;
+
+      let stack = [startCell];
+      startCell.isVisited = true;
+
+      while (stack.length > 0) {
+        const currentCell = stack.pop();
+
+        if (currentCell === endCell) {
+          // Path found
+          await highlightPath();
+          return;
+        }
+
+        drawGrid();
+        await sleep(10); // Add delay for visualization
+
+        const neighbors = getNeighbors(currentCell);
+        for (const neighbor of neighbors) {
+          if (!neighbor.isVisited) {
+            neighbor.parent = currentCell;
+            neighbor.isVisited = true;
+            stack.push(neighbor);
+          }
+        }
+      }
+
+      // No path found
+      alert("No path found!");
+      startBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+
+    // Highlight the found path
+    async function highlightPath() {
+      let currentCell = endCell;
+      while (currentCell !== null && currentCell !== startCell) {
+        currentCell = currentCell.parent;
+        if (currentCell !== startCell) {
+          currentCell.isVisited = false; // Change to a different color for path
+          ctx.fillStyle = 'yellow';
+          ctx.fillRect(currentCell.x * cellSize, currentCell.y * cellSize, cellSize, cellSize);
+          await sleep(30); // Add delay for visualization
+        }
+      }
+      startBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+    // Get selected heuristic function
+    function heuristic(cell1, cell2) {
+      const selectedHeuristic = heuristicSelect.value;
+      if (selectedHeuristic === 'manhattan') {
+        return manhattanDistance(cell1, cell2);
+      } else if (selectedHeuristic === 'euclidean') {
+        return euclideanDistance(cell1, cell2);
+      }
+      return 0; // Default to no heuristic
+    }
+
+    // Sleep function for delay
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Reset grid
+    function resetGrid() {
+      initializeGrid();
+      startBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+    // Clear walls
+    function clearWalls() {
+      for (let y = 0; y < gridHeight; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+          grid[y][x].isWall = false;
+        }
+      }
+      drawGrid();
+    }
+
+    // Generate a random maze using Recursive Backtracker algorithm
+    function generateMaze() {
+      clearWalls();
+
+      let stack = [startCell];
+      startCell.isVisited = true;
+
+      while (stack.length > 0) {
+        const currentCell = stack[stack.length - 1];
+
+        let neighbors = getNeighbors(currentCell).filter(neighbor => !neighbor.isVisited);
+        if (neighbors.length > 0) {
+          const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+          // Remove wall between currentCell and randomNeighbor
+          const wallX = (currentCell.x + randomNeighbor.x) / 2;
+          const wallY = (currentCell.y + randomNeighbor.y) / 2;
+          grid[wallY][wallX].isWall = false;
+
+          randomNeighbor.isVisited = true;
+          stack.push(randomNeighbor);
+        } else {
+          stack.pop();
+        }
+      }
+
+      drawGrid();
+    }
+
+    // Event listeners
+    canvas.addEventListener('mousedown', (e) => {
+      if (!isRunning) {
+        const x = Math.floor(e.offsetX / cellSize);
+        const y = Math.floor(e.offsetY / cellSize);
+        const cell = grid[y][x];
+
+        if (!cell.isStart && !cell.isEnd) {
+          cell.isWall = !cell.isWall;
+          drawGrid();
+        }
+      }
+    });
+
+    startBtn.addEventListener('click', () => {
+      if (!isRunning) {
+        resetGrid(); // Reset before starting a new search
+        isRunning = true;
+        const selectedAlgorithm = algorithmSelect.value;
+        if (selectedAlgorithm === 'dijkstra') {
+          dijkstra();
+        } else if (selectedAlgorithm === 'aStar') {
+          aStar();
+        } else if (selectedAlgorithm === 'bfs') {
+          bfs();
+        } else if (selectedAlgorithm === 'dfs') {
+          dfs();
+        }
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (!isRunning) {
+        resetGrid();
+      }
+    });
+
+    clearWallsBtn.addEventListener('click', () => {
+      if (!isRunning) {
+        clearWalls();
+      }
+    });
+
+    generateMazeBtn.addEventListener('click', () => {
+      if (!isRunning) {
+        generateMaze();
+      }
+    });
+
+    // Initialize grid on load
+    initializeGrid();
+  </script>
+</body>
+
+</html>

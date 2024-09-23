@@ -1,0 +1,31 @@
+Date,AI Model,Prompt,Temperature,Time Taken (s),HTML File
+2024-09-23 14:13:47,openai/gpt-4o,Procedural City Generator with Customizable Parameters,0.0,9.95,procedural_city_generator_with_customizable_parameters_openai_gpt-4o.html
+2024-09-23 14:14:25,google/gemini-pro-1.5-exp,Procedural City Generator with Customizable Parameters,0.0,37.62,procedural_city_generator_with_customizable_parameters_google_gemini-pro-1.5-exp.html
+2024-09-23 14:16:54,qwen/qwen-2.5-72b-instruct,Procedural City Generator with Customizable Parameters,0.0,149.31,procedural_city_generator_with_customizable_parameters_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 14:17:25,anthropic/claude-3.5-sonnet,Procedural City Generator with Customizable Parameters,0.0,30.92,procedural_city_generator_with_customizable_parameters_anthropic_claude-3.5-sonnet.html
+2024-09-23 14:17:44,openai/o1-mini-2024-09-12,Procedural City Generator with Customizable Parameters,0.0,18.71,procedural_city_generator_with_customizable_parameters_openai_o1-mini-2024-09-12.html
+2024-09-23 14:18:08,meta-llama/llama-3.1-405b-instruct,Procedural City Generator with Customizable Parameters,0.0,24.27,procedural_city_generator_with_customizable_parameters_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 15:49:27,openai/gpt-4o,Interactive Particle Physics Simulator,0.7,17.76,interactive_particle_physics_simulator_openai_gpt-4o.html
+2024-09-23 15:49:51,google/gemini-pro-1.5-exp,Interactive Particle Physics Simulator,0.7,24.71,interactive_particle_physics_simulator_google_gemini-pro-1.5-exp.html
+2024-09-23 15:51:01,qwen/qwen-2.5-72b-instruct,Interactive Particle Physics Simulator,0.7,69.25,interactive_particle_physics_simulator_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 15:51:47,anthropic/claude-3.5-sonnet,Interactive Particle Physics Simulator,0.7,46.19,interactive_particle_physics_simulator_anthropic_claude-3.5-sonnet.html
+2024-09-23 15:52:08,openai/o1-mini-2024-09-12,Interactive Particle Physics Simulator,0.7,21.63,interactive_particle_physics_simulator_openai_o1-mini-2024-09-12.html
+2024-09-23 15:54:00,meta-llama/llama-3.1-405b-instruct,Interactive Particle Physics Simulator,0.7,111.79,interactive_particle_physics_simulator_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 16:00:59,openai/gpt-4o,Interactive Particle Physics Simulator,0.5,22.42,interactive_particle_physics_simulator_openai_gpt-4o.html
+2024-09-23 16:01:26,google/gemini-pro-1.5-exp,Interactive Particle Physics Simulator,0.5,26.85,interactive_particle_physics_simulator_google_gemini-pro-1.5-exp.html
+2024-09-23 16:06:00,qwen/qwen-2.5-72b-instruct,Interactive Particle Physics Simulator,0.5,274.34,interactive_particle_physics_simulator_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 16:06:45,anthropic/claude-3.5-sonnet,Interactive Particle Physics Simulator,0.5,45.00,interactive_particle_physics_simulator_anthropic_claude-3.5-sonnet.html
+2024-09-23 16:07:07,openai/o1-mini-2024-09-12,Interactive Particle Physics Simulator,0.5,22.26,interactive_particle_physics_simulator_openai_o1-mini-2024-09-12.html
+2024-09-23 16:07:37,meta-llama/llama-3.1-405b-instruct,Interactive Particle Physics Simulator,0.5,29.83,interactive_particle_physics_simulator_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 16:10:09,openai/gpt-4o,Complex Pathfinding Algorithm Visualizer,0.5,17.91,complex_pathfinding_algorithm_visualizer_openai_gpt-4o.html
+2024-09-23 16:11:33,google/gemini-pro-1.5-exp,Complex Pathfinding Algorithm Visualizer,0.5,83.65,complex_pathfinding_algorithm_visualizer_google_gemini-pro-1.5-exp.html
+2024-09-23 16:12:40,qwen/qwen-2.5-72b-instruct,Complex Pathfinding Algorithm Visualizer,0.5,67.13,complex_pathfinding_algorithm_visualizer_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 16:13:59,anthropic/claude-3.5-sonnet,Complex Pathfinding Algorithm Visualizer,0.5,78.70,complex_pathfinding_algorithm_visualizer_anthropic_claude-3.5-sonnet.html
+2024-09-23 16:14:24,openai/o1-mini-2024-09-12,Complex Pathfinding Algorithm Visualizer,0.5,25.14,complex_pathfinding_algorithm_visualizer_openai_o1-mini-2024-09-12.html
+2024-09-23 16:14:57,meta-llama/llama-3.1-405b-instruct,Complex Pathfinding Algorithm Visualizer,0.5,33.76,complex_pathfinding_algorithm_visualizer_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 16:20:36,openai/gpt-4o,"Simple, value-adding, monetizable, SaaS",0.7,15.29,"simple,_value-adding,_monetizable,_saas_openai_gpt-4o.html"
+2024-09-23 16:21:09,google/gemini-pro-1.5-exp,"Simple, value-adding, monetizable, SaaS",0.7,33.27,"simple,_value-adding,_monetizable,_saas_google_gemini-pro-1.5-exp.html"
+2024-09-23 16:22:39,qwen/qwen-2.5-72b-instruct,"Simple, value-adding, monetizable, SaaS",0.7,90.53,"simple,_value-adding,_monetizable,_saas_qwen_qwen-2.5-72b-instruct.html"
+2024-09-23 16:23:49,anthropic/claude-3.5-sonnet,"Simple, value-adding, monetizable, SaaS",0.7,69.92,"simple,_value-adding,_monetizable,_saas_anthropic_claude-3.5-sonnet.html"
+2024-09-23 16:24:11,openai/o1-mini-2024-09-12,"Simple, value-adding, monetizable, SaaS",0.7,21.99,"simple,_value-adding,_monetizable,_saas_openai_o1-mini-2024-09-12.html"
+2024-09-23 16:25:48,meta-llama/llama-3.1-405b-instruct,"Simple, value-adding, monetizable, SaaS",0.7,96.63,"simple,_value-adding,_monetizable,_saas_meta-llama_llama-3.1-405b-instruct.html"

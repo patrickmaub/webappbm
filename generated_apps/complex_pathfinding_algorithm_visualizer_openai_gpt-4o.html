@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Pathfinding Algorithm Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #333;
+            color: #fff;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(50, 20px);
+            justify-content: center;
+            margin: 20px auto;
+            gap: 1px;
+        }
+        .cell {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 1px solid #ddd;
+        }
+        .start {
+            background: #00f;
+        }
+        .end {
+            background: #f00;
+        }
+        .wall {
+            background: #000;
+        }
+        .path {
+            background: #0f0;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Complex Pathfinding Algorithm Visualizer</h1>
+    </header>
+    <div id="controls">
+        <button onclick="startPathfinding()">Start Pathfinding</button>
+        <button onclick="resetGrid()">Reset Grid</button>
+        <button onclick="setAlgorithm('astar')">A* Algorithm</button>
+        <button onclick="setAlgorithm('dijkstra')">Dijkstra's Algorithm</button>
+    </div>
+    <div id="grid"></div>
+    <footer>
+        <p>&copy; 2023 Pathfinding Visualizer</p>
+    </footer>
+    <script>
+        const rows = 25;
+        const cols = 50;
+        const grid = document.getElementById('grid');
+        let algorithm = 'astar';
+        let startNode = null;
+        let endNode = null;
+        let isDragging = false;
+        let dragType = '';
+
+        function createGrid() {
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('mousedown', handleMouseDown);
+                    cell.addEventListener('mouseover', handleMouseOver);
+                    cell.addEventListener('mouseup', handleMouseUp);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function handleMouseDown(e) {
+            isDragging = true;
+            const cell = e.target;
+            if (cell.classList.contains('start')) {
+                dragType = 'start';
+            } else if (cell.classList.contains('end')) {
+                dragType = 'end';
+            } else if (cell.classList.contains('wall')) {
+                cell.classList.remove('wall');
+                dragType = 'removeWall';
+            } else {
+                cell.classList.add('wall');
+                dragType = 'wall';
+            }
+        }
+
+        function handleMouseOver(e) {
+            if (!isDragging) return;
+            const cell = e.target;
+            const row = cell.dataset.row;
+            const col = cell.dataset.col;
+            if (dragType === 'start' && !cell.classList.contains('end')) {
+                document.querySelector('.start').classList.remove('start');
+                cell.classList.add('start');
+                startNode = { row, col };
+            } else if (dragType === 'end' && !cell.classList.contains('start')) {
+                document.querySelector('.end').classList.remove('end');
+                cell.classList.add('end');
+                endNode = { row, col };
+            } else if (dragType === 'wall' && !cell.classList.contains('start') && !cell.classList.contains('end')) {
+                cell.classList.add('wall');
+            } else if (dragType === 'removeWall') {
+                cell.classList.remove('wall');
+            }
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+            dragType = '';
+        }
+
+        function setAlgorithm(algo) {
+            algorithm = algo;
+            alert(`Algorithm set to ${algo}`);
+        }
+
+        function resetGrid() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.className = 'cell';
+            });
+            startNode = null;
+            endNode = null;
+        }
+
+        function startPathfinding() {
+            if (!startNode || !endNode) {
+                alert('Please set both start and end nodes.');
+                return;
+            }
+            if (algorithm === 'astar') {
+                astarAlgorithm(startNode, endNode);
+            } else if (algorithm === 'dijkstra') {
+                dijkstraAlgorithm(startNode, endNode);
+            }
+        }
+
+        function astarAlgorithm(start, end) {
+            // Implement A* Algorithm here
+            // This is just a placeholder function.
+            console.log('A* Algorithm started');
+        }
+
+        function dijkstraAlgorithm(start, end) {
+            // Implement Dijkstra's Algorithm here
+            // This is just a placeholder function.
+            console.log('Dijkstra\'s Algorithm started');
+        }
+
+        // Initial grid creation
+        createGrid();
+    </script>
+</body>
+</html>

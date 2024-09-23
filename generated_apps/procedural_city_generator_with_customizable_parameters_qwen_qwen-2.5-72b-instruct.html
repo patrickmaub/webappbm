@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural City Generator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: space-between;
+        }
+        #controls {
+            width: 300px;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-right: 1px solid #ddd;
+        }
+        #scene {
+            flex: 1;
+        }
+        h1 {
+            margin: 0 0 20px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>Procedural City Generator</h1>
+        <label for="cityWidth">City Width (km)</label>
+        <input type="number" id="cityWidth" value="10" step="1" min="1" max="100">
+
+        <label for="cityHeight">City Height (km)</label>
+        <input type="number" id="cityHeight" value="10" step="1" min="1" max="100">
+
+        <label for="buildingMinHeight">Minimum Building Height (m)</label>
+        <input type="number" id="buildingMinHeight" value="10" step="1" min="1" max="100">
+
+        <label for="buildingMaxHeight">Maximum Building Height (m)</label>
+        <input type="number" id="buildingMaxHeight" value="50" step="1" min="1" max="100">
+
+        <label for="streetWidth">Street Width (m)</label>
+        <input type="number" id="streetWidth" value="20" step="1" min="1" max="50">
+
+        <label for="buildingDensity">Building Density (%)</label>
+        <input type="number" id="buildingDensity" value="50" step="1" min="1" max="100">
+
+        <label for="buildingColor">Building Color</label>
+        <input type="color" id="buildingColor" value="#808080">
+
+        <label for="groundColor">Ground Color</label>
+        <input type="color" id="groundColor" value="#008000">
+
+        <button id="generateCity">Generate City</button>
+    </div>
+    <div id="scene"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth - 300, window.innerHeight);
+        document.getElementById('scene').appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        camera.position.set(50, 50, 50);
+        controls.update();
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(50, 50, 50);
+        scene.add(directionalLight);
+
+        function generateCity() {
+            // Clear the scene
+            scene.children.forEach(child => {
+                if (child.type === 'Mesh') scene.remove(child);
+            });
+
+            const cityWidth = parseFloat(document.getElementById('cityWidth').value) * 1000;
+            const cityHeight = parseFloat(document.getElementById('cityHeight').value) * 1000;
+            const buildingMinHeight = parseFloat(document.getElementById('buildingMinHeight').value);
+            const buildingMaxHeight = parseFloat(document.getElementById('buildingMaxHeight').value);
+            const streetWidth = parseFloat(document.getElementById('streetWidth').value);
+            const buildingDensity = parseFloat(document.getElementById('buildingDensity').value) / 100;
+            const buildingColor = document.getElementById('buildingColor').value;
+            const groundColor = document.getElementById('groundColor').value;
+
+            // Create ground
+            const groundGeometry = new THREE.PlaneGeometry(cityWidth, cityHeight);
+            const groundMaterial = new THREE.MeshPhongMaterial({ color: groundColor });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+
+            // Generate buildings
+            for (let x = streetWidth; x < cityWidth; x += streetWidth + buildingMinHeight) {
+                for (let y = streetWidth; y < cityHeight; y += streetWidth + buildingMinHeight) {
+                    if (Math.random() < buildingDensity) {
+                        const buildingHeight = Math.random() * (buildingMaxHeight - buildingMinHeight) + buildingMinHeight;
+                        const buildingGeometry = new THREE.BoxGeometry(buildingMinHeight, buildingHeight, buildingMinHeight);
+                        const buildingMaterial = new THREE.MeshPhongMaterial({ color: buildingColor });
+                        const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+                        building.position.set(x - cityWidth / 2, buildingHeight / 2, y - cityHeight / 2);
+                        scene.add(building);
+                    }
+                }
+            }
+        }
+
+        document.getElementById('generateCity').addEventListener('click', generateCity);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = (window.innerWidth - 300) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth - 300, window.innerHeight);
+        });
+
+        generateCity(); // Initial city generation
+    </script>
+</body>
+</html>
+```
+
+### Features:
+1. **3D Visualization**: The city is visualized in 3D using Three.js, providing a dynamic and interactive experience.
+2. **Customizable Parameters**: Users can adjust various parameters such as city dimensions, building heights, street width, building density, and colors.
+3. **Responsive Design**: The application is responsive and adjusts to different screen sizes.
+4. **Orbit Controls**: Users can orbit around the city to view it from different angles.
+5. **Lighting**: Ambient and directional lighting are used to enhance the visual appearance of the city.
+
+Feel free to copy and paste this code into an HTML file and open it in a web browser to see the Procedural City Generator in action!

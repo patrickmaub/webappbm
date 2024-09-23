@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced DFT Audio Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        #fileInput {
+            display: none;
+        }
+        .custom-file-upload {
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .custom-file-upload:hover {
+            background-color: #45a049;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #007B9A;
+        }
+        #visualizer {
+            width: 100%;
+            height: 400px;
+            background-color: #000000;
+            margin-top: 20px;
+        }
+        #waveform {
+            width: 100%;
+            height: 100px;
+            background-color: #000000;
+            margin-top: 20px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .slider-container label {
+            margin-right: 10px;
+            min-width: 100px;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+        #colorScheme {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Advanced DFT Audio Visualizer</h1>
+        <div id="controls">
+            <label for="fileInput" class="custom-file-upload">
+                Choose Audio File
+            </label>
+            <input type="file" id="fileInput" accept="audio/*">
+            <button id="playPauseBtn">Play</button>
+            <button id="stopBtn">Stop</button>
+        </div>
+        <div class="slider-container">
+            <label for="volumeSlider">Volume:</label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1">
+        </div>
+        <div class="slider-container">
+            <label for="bassBoostSlider">Bass Boost:</label>
+            <input type="range" id="bassBoostSlider" min="0" max="20" step="1" value="0">
+        </div>
+        <div class="slider-container">
+            <label for="trebleBoostSlider">Treble Boost:</label>
+            <input type="range" id="trebleBoostSlider" min="0" max="20" step="1" value="0">
+        </div>
+        <select id="colorScheme">
+            <option value="default">Default</option>
+            <option value="rainbow">Rainbow</option>
+            <option value="fire">Fire</option>
+            <option value="cool">Cool</option>
+        </select>
+        <canvas id="visualizer"></canvas>
+        <canvas id="waveform"></canvas>
+    </div>
+
+    <script>
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let source;
+        let analyser;
+        let gainNode;
+        let bassBoost;
+        let trebleBoost;
+        let buffer;
+        let isPlaying = false;
+
+        const fileInput = document.getElementById('fileInput');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const bassBoostSlider = document.getElementById('bassBoostSlider');
+        const trebleBoostSlider = document.getElementById('trebleBoostSlider');
+        const colorSchemeSelect = document.getElementById('colorScheme');
+        const visualizer = document.getElementById('visualizer');
+        const waveform = document.getElementById('waveform');
+        const visualizerCtx = visualizer.getContext('2d');
+        const waveformCtx = waveform.getContext('2d');
+
+        visualizer.width = visualizer.offsetWidth;
+        visualizer.height = visualizer.offsetHeight;
+        waveform.width = waveform.offsetWidth;
+        waveform.height = waveform.offsetHeight;
+
+        fileInput.addEventListener('change', loadAudio);
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        stopBtn.addEventListener('click', stopAudio);
+        volumeSlider.addEventListener('input', updateVolume);
+        bassBoostSlider.addEventListener('input', updateBassBoost);
+        trebleBoostSlider.addEventListener('input', updateTrebleBoost);
+        colorSchemeSelect.addEventListener('change', updateColorScheme);
+
+        function loadAudio(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                audioContext.decodeAudioData(e.target.result, function(decodedBuffer) {
+                    buffer = decodedBuffer;
+                    stopAudio();
+                    setupAudio();
+                    playAudio();
+                });
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function setupAudio() {
+            source = audioContext.createBufferSource();
+            source.buffer = buffer;
+
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+
+            gainNode = audioContext.createGain();
+            bassBoost = audioContext.createBiquadFilter();
+            trebleBoost = audioContext.createBiquadFilter();
+
+            bassBoost.type = 'lowshelf';
+            bassBoost.frequency.value = 200;
+            bassBoost.gain.value = 0;
+
+            trebleBoost.type = 'highshelf';
+            trebleBoost.frequency.value = 2000;
+            trebleBoost.gain.value = 0;
+
+            source.connect(bassBoost);
+            bassBoost.connect(trebleBoost);
+            trebleBoost.connect(gainNode);
+            gainNode.connect(analyser);
+            analyser.connect(audioContext.destination);
+        }
+
+        function playAudio() {
+            if (!isPlaying) {
+                setupAudio();
+                source.start(0);
+                isPlaying = true;
+                playPauseBtn.textContent = 'Pause';
+                visualize();
+            }
+        }
+
+        function pauseAudio() {
+            if (isPlaying) {
+                audioContext.suspend();
+                isPlaying = false;
+                playPauseBtn.textContent = 'Play';
+            }
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                pauseAudio();
+            } else {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                    isPlaying = true;
+                    playPauseBtn.textContent = 'Pause';
+                } else {
+                    playAudio();
+                }
+            }
+        }
+
+        function stopAudio() {
+            if (source) {
+                source.stop(0);
+            }
+            isPlaying = false;
+            playPauseBtn.textContent = 'Play';
+        }
+
+        function updateVolume() {
+            if (gainNode) {
+                gainNode.gain.setValueAtTime(volumeSlider.value, audioContext.currentTime);
+            }
+        }
+
+        function updateBassBoost() {
+            if (bassBoost) {
+                bassBoost.gain.setValueAtTime(bassBoostSlider.value, audioContext.currentTime);
+            }
+        }
+
+        function updateTrebleBoost() {
+            if (trebleBoost) {
+                trebleBoost.gain.setValueAtTime(trebleBoostSlider.value, audioContext.currentTime);
+            }
+        }
+
+        function updateColorScheme() {
+            // Color scheme update is handled in the visualize function
+        }
+
+        function visualize() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function renderFrame() {
+                requestAnimationFrame(renderFrame);
+
+                analyser.getByteFrequencyData(dataArray);
+                analyser.getByteTimeDomainData(dataArray);
+
+                visualizerCtx.clearRect(0, 0, visualizer.width, visualizer.height);
+                waveformCtx.clearRect(0, 0, waveform.width, waveform.height);
+
+                // 3D Frequency visualization
+                const barWidth = visualizer.width / bufferLength * 2.5;
+                let x = 0;
+                let z = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = dataArray[i] * 1.5;
+                    const y = visualizer.height - barHeight;
+
+                    const r = barHeight + 25 * (i / bufferLength);
+                    const g = 250 * (i / bufferLength);
+                    const b = 50;
+
+                    visualizerCtx.save();
+                    visualizerCtx.translate(visualizer.width / 2, visualizer.height / 2);
+                    visualizerCtx.rotate((i * 2 * Math.PI) / bufferLength);
+
+                    switch (colorSchemeSelect.value) {
+                        case 'rainbow':
+                            visualizerCtx.fillStyle = `hsl(${i * 360 / bufferLength}, 100%, 50%)`;
+                            break;
+                        case 'fire':
+                            visualizerCtx.fillStyle = `rgb(${255}, ${g}, 0)`;
+                            break;
+                        case 'cool':
+                            visualizerCtx.fillStyle = `rgb(0, ${g}, ${255 - g})`;
+                            break;
+                        default:
+                            visualizerCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    }
+
+                    visualizerCtx.fillRect(0, -barHeight / 2, barWidth, barHeight);
+                    visualizerCtx.restore();
+
+                    x += barWidth + 1;
+                    z += 1;
+                }
+
+                // Waveform visualization
+                waveformCtx.lineWidth = 2;
+                waveformCtx.strokeStyle = '#00FFFF';
+                waveformCtx.beginPath();
+
+                const sliceWidth = waveform.width * 1.0 / bufferLength;
+                x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * waveform.height / 2;
+
+                    if (i === 0) {
+                        waveformCtx.moveTo(x, y);
+                    } else {
+                        waveformCtx.lineTo(x, y);
+                    }
+
+                    x += sliceWidth;
+                }
+
+                waveformCtx.lineTo(waveform.width, waveform.height / 2);
+                waveformCtx.stroke();
+            }
+
+            renderFrame();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Task Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #taskInput {
+            width: 300px;
+            padding: 10px;
+        }
+        #addTaskBtn {
+            padding: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #f9f9f9;
+            padding: 10px;
+            margin-top: 5px;
+            position: relative;
+        }
+        li.completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .deleteBtn {
+            background: #ff6666;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Task Manager</h1>
+    <input type="text" id="taskInput" placeholder="Enter a new task..." />
+    <button id="addTaskBtn">Add Task</button>
+    <ul id="taskList"></ul>
+
+    <script>
+        // Get references to DOM elements
+        const taskInput = document.getElementById('taskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const taskList = document.getElementById('taskList');
+
+        // Add event listener to the 'Add Task' button
+        addTaskBtn.addEventListener('click', () => {
+            const taskText = taskInput.value.trim();
+            if (taskText !== '') {
+                addTask(taskText);
+                taskInput.value = '';
+            } else {
+                alert('Please enter a task.');
+            }
+        });
+
+        // Function to add a task to the list
+        function addTask(text) {
+            const li = document.createElement('li');
+            li.textContent = text;
+
+            // Toggle task completion on click
+            li.addEventListener('click', () => {
+                li.classList.toggle('completed');
+            });
+
+            // Create a delete button for the task
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'deleteBtn';
+
+            // Remove the task on delete button click
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent the click event from toggling 'completed'
+                taskList.removeChild(li);
+            });
+
+            li.appendChild(deleteBtn);
+            taskList.appendChild(li);
+        }
+    </script>
+</body>
+</html>

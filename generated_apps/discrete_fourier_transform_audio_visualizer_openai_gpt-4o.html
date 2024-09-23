@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFT Audio Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        canvas {
+            border: 1px solid #fff;
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="visualizer"></canvas>
+    <div id="controls">
+        <button id="startButton">Start</button>
+        <input type="file" id="audioFile" accept="audio/*">
+    </div>
+
+    <script>
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const audioFile = document.getElementById('audioFile');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight * 0.6;
+
+        let audioContext;
+        let analyser;
+        let source;
+        let dataArray;
+
+        function createAudioContext() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+        }
+
+        function draw() {
+            requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = (canvas.width / dataArray.length) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                barHeight = dataArray[i];
+                const r = barHeight + (25 * (i / dataArray.length));
+                const g = 250 * (i / dataArray.length);
+                const b = 50;
+
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+
+                x += barWidth + 1;
+            }
+        }
+
+        function playAudio(stream) {
+            if (!audioContext) createAudioContext();
+
+            source = audioContext.createBufferSource();
+            audioContext.decodeAudioData(stream, (buffer) => {
+                source.buffer = buffer;
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                source.start(0);
+                draw();
+            }, (error) => console.error(error));
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const arrayBuffer = e.target.result;
+                playAudio(arrayBuffer);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        startButton.addEventListener('click', () => {
+            if (!audioContext) {
+                createAudioContext();
+            }
+
+            if (!navigator.mediaDevices.getUserMedia) {
+                alert('getUserMedia not supported on your browser!');
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then((stream) => {
+                    source = audioContext.createMediaStreamSource(stream);
+                    source.connect(analyser);
+                    draw();
+                })
+                .catch((err) => {
+                    console.error('The following error occurred: ' + err);
+                });
+        });
+
+        audioFile.addEventListener('change', handleFileUpload);
+    </script>
+</body>
+</html>

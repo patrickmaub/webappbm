@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Pathfinding Algorithm Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        
+        #canvas {
+            border: 1px solid black;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #ffffff;
+            padding: 10px;
+            border: 1px solid #000000;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        #controls label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        #controls input[type="number"] {
+            width: 50px;
+        }
+        
+        #controls button {
+            margin-top: 10px;
+        }
+        
+        #stats {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: #ffffff;
+            padding: 10px;
+            border: 1px solid #000000;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="controls">
+        <label for="width">Width:</label>
+        <input type="number" id="width" value="50">
+        <label for="height">Height:</label>
+        <input type="number" id="height" value="50">
+        <label for="algorithm">Algorithm:</label>
+        <select id="algorithm">
+            <option value="dijkstra">Dijkstra's Algorithm</option>
+            <option value="astar">A* Algorithm</option>
+            <option value="bfs">Breadth-First Search</option>
+            <option value="dfs">Depth-First Search</option>
+        </select>
+        <button id="start">Start</button>
+        <button id="reset">Reset</button>
+    </div>
+    <div id="stats">
+        <p>Nodes: <span id="nodes">0</span></p>
+        <p>Edges: <span id="edges">0</span></p>
+        <p>Path Length: <span id="path-length">0</span></p>
+        <p>Time: <span id="time">0</span>ms</p>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const controls = document.getElementById('controls');
+        const stats = document.getElementById('stats');
+        
+        let width = parseInt(document.getElementById('width').value);
+        let height = parseInt(document.getElementById('height').value);
+        let algorithm = document.getElementById('algorithm').value;
+        let nodes = [];
+        let edges = [];
+        let path = [];
+        let startTime = 0;
+        
+        function Node(x, y) {
+            this.x = x;
+            this.y = y;
+            this.visited = false;
+            this.distance = Infinity;
+            this.previous = null;
+        }
+        
+        function Edge(node1, node2) {
+            this.node1 = node1;
+            this.node2 = node2;
+            this.weight = Math.sqrt(Math.pow(node2.x - node1.x, 2) + Math.pow(node2.y - node1.y, 2));
+        }
+        
+        function createGrid() {
+            nodes = [];
+            edges = [];
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    nodes.push(new Node(x, y));
+                }
+            }
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    if (Math.abs(nodes[i].x - nodes[j].x) + Math.abs(nodes[i].y - nodes[j].y) === 1) {
+                        edges.push(new Edge(nodes[i], nodes[j]));
+                    }
+                }
+            }
+        }
+        
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < nodes

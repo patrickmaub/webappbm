@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Generator</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #000;
+            color: #fff;
+        }
+
+        header {
+            margin: 20px;
+            text-align: center;
+        }
+
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            margin: 10px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .control-group input {
+            padding: 5px;
+            border: none;
+            border-radius: 3px;
+        }
+
+        canvas {
+            border: 1px solid #fff;
+            max-width: 100%;
+        }
+
+        .slider {
+            width: 100%;
+            max-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Fractal Generator</h1>
+        <p>Explore the beauty of fractals with our interactive generator.</p>
+    </header>
+    <div id="controls">
+        <div class="control-group">
+            <label for="fractalType">Fractal Type:</label>
+            <select id="fractalType">
+                <option value="mandelbrot">Mandelbrot</option>
+                <option value="julia">Julia</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="iterations">Iterations:</label>
+            <input type="range" id="iterations" class="slider" min="50" max="1000" value="500">
+            <span id="iterationsValue">500</span>
+        </div>
+        <div class="control-group">
+            <label for="zoom">Zoom:</label>
+            <input type="range" id="zoom" class="slider" min="1" max="100" value="1">
+            <span id="zoomValue">1</span>
+        </div>
+    </div>
+    <canvas id="fractalCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const fractalTypeSelect = document.getElementById('fractalType');
+        const iterationsSlider = document.getElementById('iterations');
+        const zoomSlider = document.getElementById('zoom');
+        const iterationsValue = document.getElementById('iterationsValue');
+        const zoomValue = document.getElementById('zoomValue');
+
+        let fractalType = fractalTypeSelect.value;
+        let iterations = iterationsSlider.value;
+        let zoom = zoomSlider.value;
+
+        fractalTypeSelect.addEventListener('change', (e) => {
+            fractalType = e.target.value;
+            drawFractal();
+        });
+
+        iterationsSlider.addEventListener('input', (e) => {
+            iterations = e.target.value;
+            iterationsValue.textContent = iterations;
+            drawFractal();
+        });
+
+        zoomSlider.addEventListener('input', (e) => {
+            zoom = e.target.value;
+            zoomValue.textContent = zoom;
+            drawFractal();
+        });
+
+        function drawFractal() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (fractalType === 'mandelbrot') {
+                drawMandelbrot();
+            } else if (fractalType === 'julia') {
+                drawJulia();
+            }
+        }
+
+        function drawMandelbrot() {
+            const imageData = ctx.createImageData(canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let x = 0; x < canvas.width; x++) {
+                for (let y = 0; y < canvas.height; y++) {
+                    const cx = (x - canvas.width / 2) / (0.5 * zoom * canvas.width);
+                    const cy = (y - canvas.height / 2) / (0.5 * zoom * canvas.height);
+                    let zx = 0, zy = 0, i = iterations;
+                    while (zx * zx + zy * zy < 4 && i > 0) {
+                        const tmp = zx * zx - zy * zy + cx;
+                        zy = 2.0 * zx * zy + cy;
+                        zx = tmp;
+                        i--;
+                    }
+
+                    const pixelIndex = (x + y * canvas.width) * 4;
+                    const color = i === 0 ? 0 : 255 - Math.floor(i * 255 / iterations);
+                    data[pixelIndex] = color;
+                    data[pixelIndex + 1] = color;
+                    data[pixelIndex + 2] = color;
+                    data[pixelIndex + 3] = 255; // alpha
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function drawJulia() {
+            const imageData = ctx.createImageData(canvas.width, canvas.height);
+            const data = imageData.data;
+
+            const cx = -0.7;
+            const cy = 0.27015;
+
+            for (let x = 0; x < canvas.width; x++) {
+                for (let y = 0; y < canvas.height; y++) {
+                    let zx = 1.5 * (x - canvas.width / 2) / (0.5 * zoom * canvas.width);
+                    let zy = (y - canvas.height / 2) / (0.5 * zoom * canvas.height);
+                    let i = iterations;
+                    while (zx * zx + zy * zy < 4 && i > 0) {
+                        const tmp = zx * zx - zy * zy + cx;
+                        zy = 2.0 * zx * zy + cy;
+                        zx = tmp;
+                        i--;
+                    }
+
+                    const pixelIndex = (x + y * canvas.width) * 4;
+                    const color = i === 0 ? 0 : 255 - Math.floor(i * 255 / iterations);
+                    data[pixelIndex] = color;
+                    data[pixelIndex + 1] = color;
+                    data[pixelIndex + 2] = color;
+                    data[pixelIndex + 3] = 255; // alpha
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Initial draw
+        drawFractal();
+    </script>
+</body>
+</html>

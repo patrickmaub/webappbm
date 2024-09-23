@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Algorithm Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        #controls > * {
+            margin: 10px 0;
+        }
+        #array-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 300px;
+            width: 80%;
+            overflow: hidden;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        .bar {
+            background-color: #3498db;
+            margin: 0 1px;
+            width: 10px;
+            transition: height 0.3s ease;
+        }
+        .bar.highlight {
+            background-color: #e74c3c;
+        }
+        #status {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sorting Algorithm Visualizer</h1>
+    <div id="controls">
+        <label for="arraySize">Array Size:</label>
+        <input type="range" id="arraySize" min="10" max="100" value="50" oninput="updateArraySize()">
+        <label for="speed">Speed:</label>
+        <input type="range" id="speed" min="100" max="1000" value="500" oninput="updateSpeed()">
+        <label for="algorithm">Algorithm:</label>
+        <select id="algorithm" onchange="selectAlgorithm()">
+            <option value="bubbleSort">Bubble Sort</option>
+            <option value="selectionSort">Selection Sort</option>
+            <option value="insertionSort">Insertion Sort</option>
+            <option value="mergeSort">Merge Sort</option>
+            <option value="quickSort">Quick Sort</option>
+        </select>
+        <button onclick="generateArray()">Generate Array</button>
+        <button onclick="startSorting()">Start Sorting</button>
+        <button onclick="reset()">Reset</button>
+    </div>
+    <div id="status">Status: Idle</div>
+    <div id="array-container"></div>
+
+    <script>
+        const arrayContainer = document.getElementById('array-container');
+        const status = document.getElementById('status');
+        let array = [];
+        let arraySize = 50;
+        let speed = 500;
+        let sorting = false;
+        let timeoutId;
+
+        function updateArraySize() {
+            arraySize = document.getElementById('arraySize').value;
+            generateArray();
+        }
+
+        function updateSpeed() {
+            speed = document.getElementById('speed').value;
+        }
+
+        function generateArray() {
+            array = Array.from({ length: arraySize }, () => Math.floor(Math.random() * 300));
+            drawArray();
+        }
+
+        function drawArray() {
+            arrayContainer.innerHTML = '';
+            array.forEach(height => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${height}px`;
+                arrayContainer.appendChild(bar);
+            });
+        }
+
+        function selectAlgorithm() {
+            const selectedAlgorithm = document.getElementById('algorithm').value;
+            status.textContent = `Status: Selected Algorithm: ${selectedAlgorithm}`;
+        }
+
+        function startSorting() {
+            if (sorting) return;
+            sorting = true;
+            const selectedAlgorithm = document.getElementById('algorithm').value;
+            status.textContent = `Status: Sorting with ${selectedAlgorithm}`;
+            switch (selectedAlgorithm) {
+                case 'bubbleSort':
+                    bubbleSort();
+                    break;
+                case 'selectionSort':
+                    selectionSort();
+                    break;
+                case 'insertionSort':
+                    insertionSort();
+                    break;
+                case 'mergeSort':
+                    mergeSort(array, 0, array.length - 1);
+                    break;
+                case 'quickSort':
+                    quickSort(array, 0, array.length - 1);
+                    break;
+            }
+        }
+
+        function reset() {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            sorting = false;
+            generateArray();
+            status.textContent = 'Status: Idle';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => timeoutId = setTimeout(resolve, ms));
+        }
+
+        async function bubbleSort() {
+            for (let i = 0; i < array.length - 1; i++) {
+                for (let j = 0; j < array.length - 1 - i; j++) {
+                    const bars = arrayContainer.children;
+                    bars[j].classList.add('highlight');
+                    bars[j + 1].classList.add('highlight');
+                    await sleep(speed);
+                    if (array[j] > array[j + 1]) {
+                        [array[j], array[j + 1]] = [array[j + 1], array[j]];
+                        drawArray();
+                    }
+                    bars[j].classList.remove('highlight');
+                    bars[j + 1].classList.remove('highlight');
+                    await sleep(speed);
+                }
+            }
+            sorting = false;
+            status.textContent = 'Status: Sorting Complete';
+        }
+
+        async function selectionSort() {
+            for (let i = 0; i < array.length - 1; i++) {
+                let minIndex = i;
+                const bars = arrayContainer.children;
+                bars[i].classList.add('highlight');
+                for (let j = i + 1; j < array.length; j++) {
+                    bars[j].classList.add('highlight');
+                    await sleep(speed);
+                    if (array[j] < array[minIndex]) {
+                        minIndex = j;
+                    }
+                    bars[j].classList.remove('highlight');
+                }
+                if (minIndex !== i) {
+                    [array[i], array[minIndex]] = [array[minIndex], array[i]];
+                    drawArray();
+                }
+                bars[i].classList.remove('highlight');
+                await sleep(speed);
+            }
+            sorting = false;
+            status.textContent = 'Status: Sorting Complete';
+        }
+
+        async function insertionSort() {
+            for (let i = 1; i < array.length; i++) {
+                const key = array[i];
+                let j = i - 1;
+                const bars = arrayContainer.children;
+                bars[i].classList.add('highlight');
+                while (j >= 0 && array[j] > key) {
+                    array[j + 1] = array[j];
+                    drawArray();
+                    bars[j].classList.add('highlight');
+                    await sleep(speed);
+                    j--;
+                }
+                array[j + 1] = key;
+                drawArray();
+                bars[i].classList.remove('highlight');
+                await sleep(speed);
+            }
+            sorting = false;
+            status.textContent = 'Status: Sorting Complete';
+        }
+
+        async function mergeSort(arr, left, right) {
+            if (left < right) {
+                const mid = Math.floor((left + right) / 2);
+                await mergeSort(arr, left, mid);
+                await mergeSort(arr, mid + 1, right);
+                await merge(arr, left, mid, right);
+            }
+            if (left === 0 && right === array.length - 1) {
+                sorting = false;
+                status.textContent = 'Status: Sorting Complete';
+            }
+        }
+
+        async function merge(arr, left, mid, right) {
+            const tempArray = [];
+            let i = left;
+            let j = mid + 1;
+            let k = 0;
+
+            while (i <= mid && j <= right) {
+                if (arr[i] <= arr[j]) {
+                    tempArray[k] = arr[i];
+                    i++;
+                } else {
+                    tempArray[k] = arr[j];
+                    j++;
+                }
+                k++;
+            }
+
+            while (i <= mid) {
+                tempArray[k] = arr[i];
+                i++;
+                k++;
+            }
+
+            while (j <= right) {
+                tempArray[k] = arr[j];
+                j++;
+                k++;
+            }
+
+            for (let i = left; i <= right; i++) {
+                arr[i] = tempArray[i - left];
+                drawArray();
+                await sleep(speed);
+            }
+        }
+
+        async function quickSort(arr, left, right) {
+            if (left < right) {
+                const pivotIndex = await partition(arr, left, right);
+                await quickSort(arr, left, pivotIndex - 1);
+                await quickSort(arr, pivotIndex + 1, right);
+            }
+            if (left === 0 && right === array.length - 1) {
+                sorting = false;
+                status.textContent = 'Status: Sorting Complete';
+            }
+        }
+
+        async function partition(arr, left, right) {
+            const pivot = arr[right];
+            let i = left - 1;
+            for (let j = left; j < right; j++) {
+                const bars = arrayContainer.children;
+                bars[j].classList.add('highlight');
+                bars[right].classList.add('highlight');
+                await sleep(speed);
+                if (arr[j] < pivot) {
+                    i++;
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                    drawArray();
+                }
+                bars[j].classList.remove('highlight');
+                bars[right].classList.remove('highlight');
+                await sleep(speed);
+            }
+            [arr[i + 1], arr[right]] = [arr[right], arr[i + 1]];
+            drawArray();
+            await sleep(speed);
+            return i + 1;
+        }
+
+        generateArray();
+    </script>
+</body>
+</html>

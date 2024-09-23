@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Procedural City Generator</title>
+<style>
+body { margin: 0; overflow: hidden; }
+canvas { display: block; }
+#controls { position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <h2>City Parameters</h2>
+  <label for="gridSize">Grid Size:</label>
+  <input type="range" id="gridSize" min="50" max="200" value="100"><br>
+
+  <label for="buildingDensity">Building Density:</label>
+  <input type="range" id="buildingDensity" min="0.1" max="0.9" step="0.1" value="0.5"><br>
+
+  <label for="roadWidth">Road Width:</label>
+  <input type="range" id="roadWidth" min="2" max="10" value="4"><br>
+
+  <label for="buildingHeightMin">Min Building Height:</label>
+  <input type="range" id="buildingHeightMin" min="5" max="50" value="10"><br>
+
+  <label for="buildingHeightMax">Max Building Height:</label>
+  <input type="range" id="buildingHeightMax" min="10" max="100" value="30"><br>
+
+  <label for="buildingColor">Building Color:</label>
+  <input type="color" id="buildingColor" value="#888888"><br>
+
+  <label for="roadColor">Road Color:</label>
+  <input type="color" id="roadColor" value="#333333"><br>
+
+  <button id="generateButton">Generate City</button>
+</div>
+
+<canvas id="cityCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('cityCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const gridSizeInput = document.getElementById('gridSize');
+const buildingDensityInput = document.getElementById('buildingDensity');
+const roadWidthInput = document.getElementById('roadWidth');
+const buildingHeightMinInput = document.getElementById('buildingHeightMin');
+const buildingHeightMaxInput = document.getElementById('buildingHeightMax');
+const buildingColorInput = document.getElementById('buildingColor');
+const roadColorInput = document.getElementById('roadColor');
+const generateButton = document.getElementById('generateButton');
+
+function generateCity() {
+  const gridSize = parseInt(gridSizeInput.value);
+  const buildingDensity = parseFloat(buildingDensityInput.value);
+  const roadWidth = parseInt(roadWidthInput.value);
+  const buildingHeightMin = parseInt(buildingHeightMinInput.value);
+  const buildingHeightMax = parseInt(buildingHeightMaxInput.value);
+  const buildingColor = buildingColorInput.value;
+  const roadColor = roadColorInput.value;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const cellSize = Math.min(canvas.width, canvas.height) / gridSize;
+
+  // Generate road grid
+  ctx.fillStyle = roadColor;
+  for (let x = 0; x < gridSize; x++) {
+    for (let y = 0; y < gridSize; y++) {
+      if (x % 2 === 0 || y % 2 === 0) {
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+
+  // Generate buildings
+  ctx.fillStyle = buildingColor;
+  for (let x = 0; x < gridSize; x++) {
+    for (let y = 0; y < gridSize; y++) {
+      if (x % 2 !== 0 && y % 2 !== 0) {
+        if (Math.random() < buildingDensity) {
+          const buildingHeight = Math.floor(Math.random() * (buildingHeightMax - buildingHeightMin + 1)) + buildingHeightMin;
+          ctx.fillRect(x * cellSize + roadWidth / 2, y * cellSize + roadWidth / 2, cellSize - roadWidth, -buildingHeight * cellSize / 10); // Adjust building height scaling as needed
+        }
+      }
+    }
+  }
+}
+
+generateButton.addEventListener('click', generateCity);
+
+// Initial city generation
+generateCity();
+</script>
+
+</body>
+</html>
+```
+
+**Explanation and Features:**
+
+1.  **HTML Structure:**
+    *   Sets up the basic HTML structure with a title, canvas element for rendering the city, and a `div` for control elements.
+
+2.  **CSS Styling:**
+    *   Basic styling for the body and canvas to ensure the canvas fills the browser window.
+    *   Styles the controls `div` with positioning, background, padding, and border radius for a clean look.
+
+3.  **Control Elements:**
+    *   **Sliders:** Provides sliders for adjusting various parameters like grid size, building density, road width, minimum and maximum building height.
+    *   **Color Pickers:** Allows choosing colors for buildings and roads.
+    *   **Generate Button:** Triggers the city generation process when clicked.
+
+4.  **JavaScript Logic:**
+    *   **Canvas Setup:** Gets the canvas and its 2D rendering context. Sets the canvas dimensions to the browser window size.
+    *   **Variable Initialization:** Gets references to all the input elements for accessing their values later.
+    *   **`generateCity()` Function:**
+        *   Reads the current values from all input elements.
+        *   Clears the canvas to redraw the city.
+        *   Calculates `cellSize` based on the grid size and canvas dimensions.
+        *   **Road Grid Generation:**
+            *   Sets the fill style to the chosen road color.
+            *   Iterates through the grid and draws rectangles for roads based on even/odd row and column indices.
+        *   **Building Generation:**
+            *   Sets the fill style to the chosen building color.
+            *   Iterates through the grid and checks for cells where buildings can be placed (odd row and column indices).
+            *   Uses `Math.random()` to determine if a building should be placed based on the building density.
+            *   Calculates a random building height within the specified range.
+            *   Draws a rectangle for the building, adjusting its height based on the calculated value and a scaling factor.
+    *   **Event Listener:** Attaches a click event listener to the "Generate City" button, calling the `generateCity()` function when clicked.
+    *   **Initial City Generation:** Calls `generateCity()` once on page load to display an initial city.
+
+**To Use:**
+
+1.  Copy and paste the code into an HTML file (e.g., `cityGenerator.html`).
+2.  Open the HTML file in a web browser.
+3.  Adjust the parameters using the sliders and color pickers.
+4.  Click "Generate City" to create a new city based on your settings.
+
+This code provides a basic framework for a procedural city generator. You can expand upon it by adding more features like:
+
+*   Different building shapes and styles.
+*   Parks and other open spaces.
+*   Rivers and other geographical features.
+*   Advanced road generation algorithms.
+*   3D rendering using WebGL.
+*   User interaction to place specific buildings or features.

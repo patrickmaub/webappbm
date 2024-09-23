@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural City Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #parameters {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        #parameters label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        #parameters input[type="range"] {
+            width: 100%;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="parameters">
+        <label>
+            City Size:
+            <input type="range" id="city-size" min="10" max="100" value="50">
+            <span id="city-size-value">50</span>
+        </label>
+        <label>
+            Building Density:
+            <input type="range" id="building-density" min="0.1" max="1" step="0.1" value="0.5">
+            <span id="building-density-value">0.5</span>
+        </label>
+        <label>
+            Road Network Complexity:
+            <input type="range" id="road-complexity" min="1" max="10" value="5">
+            <span id="road-complexity-value">5</span>
+        </label>
+        <label>
+            Random Seed:
+            <input type="number" id="random-seed" value="12345">
+        </label>
+        <button id="generate-city">Generate City</button>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Get the canvas element
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Get the parameters element
+        const parameters = document.getElementById('parameters');
+
+        // Get the input elements
+        const citySizeInput = document.getElementById('city-size');
+        const buildingDensityInput = document.getElementById('building-density');
+        const roadComplexityInput = document.getElementById('road-complexity');
+        const randomSeedInput = document.getElementById('random-seed');
+        const generateCityButton = document.getElementById('generate-city');
+
+        // Set up event listeners
+        citySizeInput.addEventListener('input', updateCitySizeValue);
+        buildingDensityInput.addEventListener('input', updateBuildingDensityValue);
+        roadComplexityInput.addEventListener('input', updateRoadComplexityValue);
+        generateCityButton.addEventListener('click', generateCity);
+
+        // Set up initial values
+        let citySize = parseInt(citySizeInput.value);
+        let buildingDensity = parseFloat(buildingDensityInput.value);
+        let roadComplexity = parseInt(roadComplexityInput.value);
+        let randomSeed = parseInt(randomSeedInput.value);
+
+        // Function to update the city size value
+        function updateCitySizeValue() {
+            citySize = parseInt(citySizeInput.value);
+            document.getElementById('city-size-value').textContent = citySize;
+        }
+
+        // Function to update the building density value
+        function updateBuildingDensityValue() {
+            buildingDensity = parseFloat(buildingDensityInput.value);
+            document.getElementById('building-density-value').textContent = buildingDensity.toFixed(1);
+        }
+
+        // Function to update the road complexity value
+        function updateRoadComplexityValue() {
+            roadComplexity = parseInt(roadComplexityInput.value);
+            document.getElementById('road-complexity-value').textContent = roadComplexity;
+        }
+
+        // Function to generate the city
+        function generateCity() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Set the random seed
+            Math.seedrandom(randomSeed);
+
+            // Generate the city
+            const city = generateCityGrid(citySize, buildingDensity, roadComplexity);
+
+            // Draw the city
+            drawCity(city, ctx);
+        }
+
+        // Function to generate the city grid
+        function generateCityGrid(size, density, complexity) {
+            const grid = [];
+            for (let x = 0; x < size; x++) {
+                grid[x] = [];
+                for (let y = 0; y < size; y++) {
+                    if (Math.random() < density) {
+                        grid[x][y] = {
+                            type: 'building',
+                            height: Math.floor(Math.random() * 10) + 1,
+                        };
+                    } else {
+                        grid[x][y] = {
+                            type: 'road',
+                        };
+                    }
+                }
+            }
+
+            // Add roads
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    if (grid[x][y].type === 'road') {
+                        const directions = [
+                            [-1, 0],
+                            [1, 0],
+                            [0, -1],
+                            [0, 1],
+                        ];
+                        for (let i = 0; i < directions.length; i++) {
+                            const dx = directions[i][0];
+                            const dy = directions[i][1];
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < size && ny >= 0 && ny < size && grid[nx][ny].type === 'road') {
+                                grid[x][y].connected = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add complexity to roads
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    if (grid[x][y].type === 'road' && grid[x][y].connected) {
+                        if (Math.random() < complexity / 10) {
+                            grid[x][y].type = 'intersection';
+                        }
+                    }
+                }
+            }
+
+            return grid;
+        }
+
+        // Function to draw the city
+        function drawCity(city, ctx) {
+            const cellSize = 10;
+            for (let x = 0; x < city.length; x++) {
+                for (let y = 0; y < city[x].length; y++) {
+                    const cell = city[x][y];
+                    if (cell.type === 'building') {
+                        ctx.fillStyle = '#666';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '8px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(cell.height, x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+                    } else if (cell.type === 'road') {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    } else if (cell.type === 'intersection') {
+                        ctx.fillStyle = '#ccc';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+        }
+
+        // Set up the canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    </script>
+</body>
+</html>
+```
+This code generates a procedural city with customizable parameters such as city size, building density, road network complexity, and random seed. The city is rendered on a canvas element using JavaScript and HTML5 canvas. The city grid is generated using a simple algorithm that creates buildings and roads based on the input parameters. The roads are then connected and intersections are added to create a more complex road network.
+
+Note that this is a simplified example and there are many ways to generate procedural cities. You can add more complexity and realism to the city generation algorithm by using more advanced techniques such as Perlin noise, Voronoi diagrams, or L-systems.

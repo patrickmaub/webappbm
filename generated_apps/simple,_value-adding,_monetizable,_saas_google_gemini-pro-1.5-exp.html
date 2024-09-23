@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Text Summarizer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        #container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #summary {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+
+        /* Subscription Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>AI-Powered Text Summarizer</h1>
+        <textarea id="textInput" placeholder="Paste your text here..."></textarea>
+        <button onclick="summarize()">Summarize</button>
+
+        <div id="summary"></div>
+
+        <!-- Subscription Modal -->
+        <div id="subscriptionModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>Subscribe for Unlimited Summaries</h2>
+                <p>Unlock the full power of our AI summarizer with a subscription. Get unlimited summaries, advanced features, and priority support.</p>
+                <button onclick="subscribe()">Subscribe Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let usageCount = 0; // Track free usage
+
+        function summarize() {
+            const text = document.getElementById("textInput").value;
+
+            if (text.trim() === "") {
+                alert("Please enter some text to summarize.");
+                return;
+            }
+
+            usageCount++;
+
+            if (usageCount > 3) {
+                // Show subscription modal after 3 free uses
+                showModal();
+                return;
+            }
+
+            // Simulate AI summarization (replace with actual API call)
+            const summary = summarizeText(text);
+
+            document.getElementById("summary").innerHTML = "<p><strong>Summary:</strong></p><p>" + summary + "</p>";
+        }
+
+        function summarizeText(text) {
+            // Placeholder for actual summarization logic (replace with API call or library)
+            // For now, just return the first few sentences
+            const sentences = text.split(".");
+            return sentences.slice(0, 3).join(".") + "."; 
+        }
+
+        function showModal() {
+            document.getElementById("subscriptionModal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("subscriptionModal").style.display = "none";
+        }
+
+        function subscribe() {
+            // Handle subscription logic (e.g., redirect to payment page)
+            alert("Subscription feature coming soon!");
+            closeModal();
+        }
+    </script>
+</body>
+</html>
