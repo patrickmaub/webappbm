@@ -174,7 +174,6 @@ st.markdown("""
 Welcome to the **AI Web App Benchmark Generator**! This application is an LLM benchmark for different AI models by generating single .html file based web applications based on a series of selected ideas. 
 """)
 
-st.sidebar.header("Configuration")
 
 # Sidebar selections
 if IS_INTERNAL:
