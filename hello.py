@@ -188,7 +188,7 @@ else:
     run_benchmark_button = False
 
 # Feedback configuration (available to all users)
-feedback_option = st.sidebar.selectbox("Select Feedback Style", FEEDBACK_OPTIONS, index=0)
+#feedback_option = st.sidebar.selectbox("Select Feedback Style", FEEDBACK_OPTIONS, index=0)
 
 # Run Benchmark Button (only visible to internal users)
 if IS_INTERNAL and run_benchmark_button:
