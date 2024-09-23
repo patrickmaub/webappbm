@@ -1,0 +1,134 @@
+2024-09-22 21:33:38,440 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:33:44,668 - AI - INFO - Received response from AI
+2024-09-22 21:35:04,683 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:35:11,988 - AI - INFO - Received response from AI
+2024-09-22 21:37:38,798 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:37:46,540 - AI - INFO - Received response from AI
+2024-09-22 21:38:48,286 - AI - INFO - Sending request to AI model: claude-3.5-sonnet
+2024-09-22 21:38:48,503 - AI - ERROR - Error in AI request: Error code: 400 - {'error': {'message': 'Model claude-3.5-sonnet is not available', 'code': 400}, 'user_id': 'user_2VIiuKVbeOeOKJ6MBPgHofYPOa7'}
+2024-09-22 21:39:23,193 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:39:30,262 - AI - INFO - Received response from AI
+2024-09-22 21:40:44,692 - AI - INFO - Sending request to AI model: openai/o1-preview
+2024-09-22 21:41:02,536 - AI - INFO - Received response from AI
+2024-09-22 21:42:52,273 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:43:03,197 - AI - INFO - Received response from AI
+2024-09-22 21:43:42,628 - AI - INFO - Sending request to AI model: openai/o1-preview
+2024-09-22 21:44:17,608 - AI - INFO - Received response from AI
+2024-09-22 21:46:05,571 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-22 21:46:36,453 - AI - INFO - Received response from AI
+2024-09-22 21:46:51,227 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:47:06,568 - AI - INFO - Received response from AI
+2024-09-22 21:47:30,024 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:47:42,292 - AI - INFO - Received response from AI
+2024-09-22 21:51:46,347 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:51:58,452 - AI - INFO - Received response from AI
+2024-09-22 21:51:58,453 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-22 21:52:30,962 - AI - INFO - Received response from AI
+2024-09-22 21:52:30,964 - AI - INFO - Sending request to AI model: openai/o1-preview
+2024-09-22 21:53:10,754 - AI - INFO - Received response from AI
+2024-09-22 21:54:49,755 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:55:00,546 - AI - INFO - Received response from AI
+2024-09-22 21:55:00,548 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-22 21:55:38,370 - AI - INFO - Received response from AI
+2024-09-22 21:55:38,373 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-22 21:56:49,775 - AI - INFO - Received response from AI
+2024-09-22 21:59:19,126 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 21:59:37,987 - AI - INFO - Received response from AI
+2024-09-22 21:59:37,989 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-22 22:00:39,850 - AI - INFO - Received response from AI
+2024-09-22 22:00:39,853 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-22 22:01:29,717 - AI - INFO - Received response from AI
+2024-09-22 22:01:29,720 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-22 22:02:03,406 - AI - INFO - Received response from AI
+2024-09-22 22:02:03,409 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-22 22:02:27,575 - AI - INFO - Received response from AI
+2024-09-22 22:02:27,578 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-22 22:04:10,345 - AI - INFO - Received response from AI
+2024-09-22 22:08:20,762 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 22:08:31,184 - AI - INFO - Received response from AI
+2024-09-22 22:08:31,187 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-22 22:08:50,354 - AI - INFO - Received response from AI
+2024-09-22 22:08:50,357 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-22 22:09:17,250 - AI - INFO - Received response from AI
+2024-09-22 22:09:17,252 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-22 22:09:40,761 - AI - INFO - Received response from AI
+2024-09-22 22:09:40,764 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-22 22:10:02,952 - AI - INFO - Received response from AI
+2024-09-22 22:10:02,955 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-22 22:10:34,379 - AI - INFO - Received response from AI
+2024-09-22 22:14:03,273 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-22 22:14:17,749 - AI - INFO - Received response from AI
+2024-09-22 22:14:17,751 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-22 22:15:15,119 - AI - INFO - Received response from AI
+2024-09-22 22:15:15,121 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-22 22:15:53,643 - AI - INFO - Received response from AI
+2024-09-22 22:15:53,646 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-22 22:16:32,591 - AI - INFO - Received response from AI
+2024-09-22 22:16:32,594 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-22 22:16:58,718 - AI - INFO - Received response from AI
+2024-09-22 22:16:58,721 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-22 22:17:22,618 - AI - INFO - Received response from AI
+2024-09-23 14:13:37,537 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-23 14:13:47,490 - AI - INFO - Received response from AI
+2024-09-23 14:13:47,493 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-23 14:14:25,109 - AI - INFO - Received response from AI
+2024-09-23 14:14:25,111 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-23 14:16:54,422 - AI - INFO - Received response from AI
+2024-09-23 14:16:54,424 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-23 14:17:25,347 - AI - INFO - Received response from AI
+2024-09-23 14:17:25,350 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-23 14:17:44,061 - AI - INFO - Received response from AI
+2024-09-23 14:17:44,063 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-23 14:18:08,337 - AI - INFO - Received response from AI
+2024-09-23 15:49:09,402 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-23 15:49:27,158 - AI - INFO - Received response from AI
+2024-09-23 15:49:27,160 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-23 15:49:51,869 - AI - INFO - Received response from AI
+2024-09-23 15:49:51,871 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-23 15:51:01,122 - AI - INFO - Received response from AI
+2024-09-23 15:51:01,124 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-23 15:51:47,313 - AI - INFO - Received response from AI
+2024-09-23 15:51:47,315 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-23 15:52:08,946 - AI - INFO - Received response from AI
+2024-09-23 15:52:08,948 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-23 15:54:00,736 - AI - INFO - Received response from AI
+2024-09-23 15:57:15,761 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-23 16:00:36,936 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-23 16:00:59,359 - AI - INFO - Received response from AI
+2024-09-23 16:00:59,361 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-23 16:01:26,210 - AI - INFO - Received response from AI
+2024-09-23 16:01:26,212 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-23 16:06:00,549 - AI - INFO - Received response from AI
+2024-09-23 16:06:00,551 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-23 16:06:45,550 - AI - INFO - Received response from AI
+2024-09-23 16:06:45,552 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-23 16:07:07,812 - AI - INFO - Received response from AI
+2024-09-23 16:07:07,815 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-23 16:07:37,646 - AI - INFO - Received response from AI
+2024-09-23 16:09:51,621 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-23 16:10:09,530 - AI - INFO - Received response from AI
+2024-09-23 16:10:09,532 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-23 16:11:33,183 - AI - INFO - Received response from AI
+2024-09-23 16:11:33,185 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-23 16:12:40,315 - AI - INFO - Received response from AI
+2024-09-23 16:12:40,317 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-23 16:13:59,015 - AI - INFO - Received response from AI
+2024-09-23 16:13:59,017 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-23 16:14:24,152 - AI - INFO - Received response from AI
+2024-09-23 16:14:24,154 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-23 16:14:57,910 - AI - INFO - Received response from AI
+2024-09-23 16:20:20,840 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-23 16:20:36,128 - AI - INFO - Received response from AI
+2024-09-23 16:20:36,130 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
+2024-09-23 16:21:09,401 - AI - INFO - Received response from AI
+2024-09-23 16:21:09,402 - AI - INFO - Sending request to AI model: qwen/qwen-2.5-72b-instruct
+2024-09-23 16:22:39,930 - AI - INFO - Received response from AI
+2024-09-23 16:22:39,932 - AI - INFO - Sending request to AI model: anthropic/claude-3.5-sonnet
+2024-09-23 16:23:49,847 - AI - INFO - Received response from AI
+2024-09-23 16:23:49,849 - AI - INFO - Sending request to AI model: openai/o1-mini-2024-09-12
+2024-09-23 16:24:11,837 - AI - INFO - Received response from AI
+2024-09-23 16:24:11,839 - AI - INFO - Sending request to AI model: meta-llama/llama-3.1-405b-instruct
+2024-09-23 16:25:48,465 - AI - INFO - Received response from AI
+2024-09-23 16:32:18,701 - AI - INFO - Sending request to AI model: openai/gpt-4o
+2024-09-23 16:32:42,762 - AI - INFO - Received response from AI
+2024-09-23 16:32:42,764 - AI - INFO - Sending request to AI model: google/gemini-pro-1.5-exp
