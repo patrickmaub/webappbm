@@ -174,7 +174,7 @@ if 'selected_result' not in st.session_state:
 # App Layout
 # ------------------------------
 
-st.title("AI-Powered Web App Benchmark Generator 📊")
+st.title("Web App Benchmark (for LLMs)")
 
 st.markdown("""
 Welcome to the **AI Web App Benchmark Generator**! This application is an LLM benchmark for different AI models by generating single .html file based web applications based on a series of selected ideas. 
