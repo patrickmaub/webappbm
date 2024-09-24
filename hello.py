@@ -13,7 +13,7 @@ import streamlit.components.v1 as components
 # ------------------------------
 
 # Flag to determine if the app is in internal (development) mode or external (viewing) mode
-IS_INTERNAL = True  # Set to True for internal use, False for external users
+IS_INTERNAL = False  # Set to True for internal use, False for external users
 PROMPT = f"""Generate a complex single file HTML web application for: {{selected_idea}}. 
 It must be a single page application with no redirects.
 Provide the full code for the prompt with no placeholders.
