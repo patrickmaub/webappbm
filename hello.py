@@ -13,8 +13,13 @@ import streamlit.components.v1 as components
 # ------------------------------
 
 # Flag to determine if the app is in internal (development) mode or external (viewing) mode
-IS_INTERNAL = False  # Set to True for internal use, False for external users
-
+IS_INTERNAL = True  # Set to True for internal use, False for external users
+PROMPT = f"""Generate a complex single file HTML web application for: {{selected_idea}}. 
+It must be a single page application with no redirects.
+Provide the full code for the prompt with no placeholders.
+Ensure to delimit the file with <!DOCTYPE html>.
+Make it as complex and impressive as you are capable of handling.
+Blow away the user with your advanced capabilities."""
 # Define available AI models
 MODELS = [
     'openai/gpt-4o',
@@ -22,12 +27,13 @@ MODELS = [
     'qwen/qwen-2.5-72b-instruct',
     'anthropic/claude-3.5-sonnet',
     'openai/o1-mini-2024-09-12',
-    'meta-llama/llama-3.1-405b-instruct'
+    'meta-llama/llama-3.1-405b-instruct',
+    "deepseek/deepseek-chat"
 ]
 
 # Define available Prompts
 WEB_APP_IDEAS = [
-    'Simple, value-adding, monetizable, SaaS',
+    'Monetizable and original SaaS',
     'Interactive Particle Physics Simulator',
     'Advanced Fractal Explorer with Custom Algorithms',
     'Complex 3D Graphing Calculator',
@@ -153,7 +159,7 @@ def render_html_file(file_path):
 # ------------------------------
 
 st.set_page_config(
-    page_title="AI Web App Benchmark Generator",
+    page_title="Web App LLM Benchmark",
     page_icon="📊",
     layout="wide",
 )
@@ -174,6 +180,7 @@ st.markdown("""
 Welcome to the **AI Web App Benchmark Generator**! This application is an LLM benchmark for different AI models by generating single .html file based web applications based on a series of selected ideas. 
 """)
 
+st.markdown(f"""*Prompt*: {PROMPT}""")
 
 # Sidebar selections
 if IS_INTERNAL:
@@ -195,12 +202,12 @@ if IS_INTERNAL and run_benchmark_button:
         for model in MODELS:
             start_time = time.time()
             # Create the prompt with <html> tags as per instructions
-            prompt = (
-                f"Generate a complex single file HTML web application for a {selected_idea}. "
-                "Ensure to delimit the file with <!DOCTYPE html>."
-                "Make it as complex and impressive as you are capable of handling. "
-                "Blow away the user with your advanced capabilities."
-            )
+            prompt = f"""Generate a complex single file HTML web application for a {selected_idea}. 
+It must be a single page application with no redirects.
+Provide the full code for the prompt with no placeholders.
+Ensure to delimit the file with <!DOCTYPE html>.
+Make it as complex and impressive as you are capable of handling.
+Blow away the user with your advanced capabilities."""
             try:
                 # Call the instruct method from the ai module with the specified temperature
                 generated_html = instruct(prompt, model=model, temperature=temperature)
