@@ -29,3 +29,78 @@ Date,AI Model,Prompt,Temperature,Time Taken (s),HTML File
 2024-09-23 16:23:49,anthropic/claude-3.5-sonnet,"Simple, value-adding, monetizable, SaaS",0.7,69.92,"simple,_value-adding,_monetizable,_saas_anthropic_claude-3.5-sonnet.html"
 2024-09-23 16:24:11,openai/o1-mini-2024-09-12,"Simple, value-adding, monetizable, SaaS",0.7,21.99,"simple,_value-adding,_monetizable,_saas_openai_o1-mini-2024-09-12.html"
 2024-09-23 16:25:48,meta-llama/llama-3.1-405b-instruct,"Simple, value-adding, monetizable, SaaS",0.7,96.63,"simple,_value-adding,_monetizable,_saas_meta-llama_llama-3.1-405b-instruct.html"
+2024-09-23 16:32:42,openai/gpt-4o,Monetizable and original SaaS,1.0,24.06,monetizable_and_original_saas_openai_gpt-4o.html
+2024-09-23 16:33:33,google/gemini-pro-1.5-exp,Monetizable and original SaaS,1.0,50.47,monetizable_and_original_saas_google_gemini-pro-1.5-exp.html
+2024-09-23 16:39:55,anthropic/claude-3.5-sonnet,Monetizable and original SaaS,1.0,35.71,monetizable_and_original_saas_anthropic_claude-3.5-sonnet.html
+2024-09-23 16:40:33,openai/o1-mini-2024-09-12,Monetizable and original SaaS,1.0,37.99,monetizable_and_original_saas_openai_o1-mini-2024-09-12.html
+2024-09-23 16:42:17,meta-llama/llama-3.1-405b-instruct,Monetizable and original SaaS,1.0,103.13,monetizable_and_original_saas_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 16:59:43,qwen/qwen-2.5-72b-instruct,Realistic Fluid Dynamics Simulator,0.7,112.64,realistic_fluid_dynamics_simulator_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 17:09:51,meta-llama/llama-3.1-405b-instruct,Realistic Fluid Dynamics Simulator,0.7,1.44,realistic_fluid_dynamics_simulator_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 18:23:36,openai/gpt-4o,Procedural Terrain Generator with Erosion Simulation,0.7,9.96,procedural_terrain_generator_with_erosion_simulation_openai_gpt-4o.html
+2024-09-23 18:24:30,google/gemini-pro-1.5-exp,Procedural Terrain Generator with Erosion Simulation,0.7,54.21,procedural_terrain_generator_with_erosion_simulation_google_gemini-pro-1.5-exp.html
+2024-09-23 18:28:40,qwen/qwen-2.5-72b-instruct,Procedural Terrain Generator with Erosion Simulation,0.7,249.60,procedural_terrain_generator_with_erosion_simulation_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 18:29:20,anthropic/claude-3.5-sonnet,Procedural Terrain Generator with Erosion Simulation,0.7,39.88,procedural_terrain_generator_with_erosion_simulation_anthropic_claude-3.5-sonnet.html
+2024-09-23 18:29:42,openai/o1-mini-2024-09-12,Procedural Terrain Generator with Erosion Simulation,0.7,21.91,procedural_terrain_generator_with_erosion_simulation_openai_o1-mini-2024-09-12.html
+2024-09-23 18:31:35,meta-llama/llama-3.1-405b-instruct,Procedural Terrain Generator with Erosion Simulation,0.7,112.95,procedural_terrain_generator_with_erosion_simulation_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 18:36:25,deepseek/deepseek-chat,Procedural Terrain Generator with Erosion Simulation,0.7,290.18,procedural_terrain_generator_with_erosion_simulation_deepseek_deepseek-chat.html
+2024-09-23 18:37:59,openai/gpt-4o,Complex 3D Graphing Calculator,0.7,12.25,complex_3d_graphing_calculator_openai_gpt-4o.html
+2024-09-23 18:38:26,google/gemini-pro-1.5-exp,Complex 3D Graphing Calculator,0.7,26.78,complex_3d_graphing_calculator_google_gemini-pro-1.5-exp.html
+2024-09-23 18:42:10,qwen/qwen-2.5-72b-instruct,Complex 3D Graphing Calculator,0.7,223.69,complex_3d_graphing_calculator_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 18:42:38,anthropic/claude-3.5-sonnet,Complex 3D Graphing Calculator,0.7,28.68,complex_3d_graphing_calculator_anthropic_claude-3.5-sonnet.html
+2024-09-23 18:42:54,openai/o1-mini-2024-09-12,Complex 3D Graphing Calculator,0.7,15.84,complex_3d_graphing_calculator_openai_o1-mini-2024-09-12.html
+2024-09-23 18:45:21,meta-llama/llama-3.1-405b-instruct,Complex 3D Graphing Calculator,0.7,147.10,complex_3d_graphing_calculator_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 18:48:46,deepseek/deepseek-chat,Complex 3D Graphing Calculator,0.7,205.10,complex_3d_graphing_calculator_deepseek_deepseek-chat.html
+2024-09-23 18:53:31,openai/gpt-4o,Interactive Lindenmayer System (L-System) Fractal Generator,0.7,11.44,interactive_lindenmayer_system_(l-system)_fractal_generator_openai_gpt-4o.html
+2024-09-23 18:53:52,google/gemini-pro-1.5-exp,Interactive Lindenmayer System (L-System) Fractal Generator,0.7,20.68,interactive_lindenmayer_system_(l-system)_fractal_generator_google_gemini-pro-1.5-exp.html
+2024-09-23 18:57:25,anthropic/claude-3.5-sonnet,Interactive Lindenmayer System (L-System) Fractal Generator,0.7,42.23,interactive_lindenmayer_system_(l-system)_fractal_generator_anthropic_claude-3.5-sonnet.html
+2024-09-23 18:57:44,openai/o1-mini-2024-09-12,Interactive Lindenmayer System (L-System) Fractal Generator,0.7,19.68,interactive_lindenmayer_system_(l-system)_fractal_generator_openai_o1-mini-2024-09-12.html
+2024-09-23 18:59:03,meta-llama/llama-3.1-405b-instruct,Interactive Lindenmayer System (L-System) Fractal Generator,0.7,79.25,interactive_lindenmayer_system_(l-system)_fractal_generator_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 19:01:45,deepseek/deepseek-chat,Interactive Lindenmayer System (L-System) Fractal Generator,0.7,161.06,interactive_lindenmayer_system_(l-system)_fractal_generator_deepseek_deepseek-chat.html
+2024-09-23 19:04:13,openai/gpt-4o,Realistic Fluid Dynamics Simulator,0.7,22.50,realistic_fluid_dynamics_simulator_openai_gpt-4o.html
+2024-09-23 19:04:59,google/gemini-pro-1.5-exp,Realistic Fluid Dynamics Simulator,0.7,46.59,realistic_fluid_dynamics_simulator_google_gemini-pro-1.5-exp.html
+2024-09-23 19:07:34,qwen/qwen-2.5-72b-instruct,Realistic Fluid Dynamics Simulator,0.7,154.70,realistic_fluid_dynamics_simulator_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 19:08:31,anthropic/claude-3.5-sonnet,Realistic Fluid Dynamics Simulator,0.7,56.86,realistic_fluid_dynamics_simulator_anthropic_claude-3.5-sonnet.html
+2024-09-23 19:08:50,openai/o1-mini-2024-09-12,Realistic Fluid Dynamics Simulator,0.7,19.64,realistic_fluid_dynamics_simulator_openai_o1-mini-2024-09-12.html
+2024-09-23 19:09:21,meta-llama/llama-3.1-405b-instruct,Realistic Fluid Dynamics Simulator,0.7,31.14,realistic_fluid_dynamics_simulator_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 19:13:32,deepseek/deepseek-chat,Realistic Fluid Dynamics Simulator,0.7,250.74,realistic_fluid_dynamics_simulator_deepseek_deepseek-chat.html
+2024-09-23 19:15:44,openai/gpt-4o,Advanced Fractal Explorer with Custom Algorithms,0.7,14.74,advanced_fractal_explorer_with_custom_algorithms_openai_gpt-4o.html
+2024-09-23 19:16:39,google/gemini-pro-1.5-exp,Advanced Fractal Explorer with Custom Algorithms,0.7,55.26,advanced_fractal_explorer_with_custom_algorithms_google_gemini-pro-1.5-exp.html
+2024-09-23 19:19:27,qwen/qwen-2.5-72b-instruct,Advanced Fractal Explorer with Custom Algorithms,0.7,168.10,advanced_fractal_explorer_with_custom_algorithms_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 19:20:17,anthropic/claude-3.5-sonnet,Advanced Fractal Explorer with Custom Algorithms,0.7,49.74,advanced_fractal_explorer_with_custom_algorithms_anthropic_claude-3.5-sonnet.html
+2024-09-23 19:20:48,openai/o1-mini-2024-09-12,Advanced Fractal Explorer with Custom Algorithms,0.7,30.48,advanced_fractal_explorer_with_custom_algorithms_openai_o1-mini-2024-09-12.html
+2024-09-23 19:23:08,meta-llama/llama-3.1-405b-instruct,Advanced Fractal Explorer with Custom Algorithms,0.7,140.56,advanced_fractal_explorer_with_custom_algorithms_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 19:27:00,deepseek/deepseek-chat,Advanced Fractal Explorer with Custom Algorithms,0.7,231.39,advanced_fractal_explorer_with_custom_algorithms_deepseek_deepseek-chat.html
+2024-09-23 19:28:38,openai/gpt-4o,Advanced Fractal Explorer with Custom Algorithms,0.7,14.72,advanced_fractal_explorer_with_custom_algorithms_openai_gpt-4o.html
+2024-09-23 19:29:26,google/gemini-pro-1.5-exp,Advanced Fractal Explorer with Custom Algorithms,0.7,47.61,advanced_fractal_explorer_with_custom_algorithms_google_gemini-pro-1.5-exp.html
+2024-09-23 19:30:34,qwen/qwen-2.5-72b-instruct,Advanced Fractal Explorer with Custom Algorithms,0.7,68.46,advanced_fractal_explorer_with_custom_algorithms_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 19:31:26,anthropic/claude-3.5-sonnet,Advanced Fractal Explorer with Custom Algorithms,0.7,51.61,advanced_fractal_explorer_with_custom_algorithms_anthropic_claude-3.5-sonnet.html
+2024-09-23 19:31:51,openai/o1-mini-2024-09-12,Advanced Fractal Explorer with Custom Algorithms,0.7,25.01,advanced_fractal_explorer_with_custom_algorithms_openai_o1-mini-2024-09-12.html
+2024-09-23 19:33:33,meta-llama/llama-3.1-405b-instruct,Advanced Fractal Explorer with Custom Algorithms,0.7,102.00,advanced_fractal_explorer_with_custom_algorithms_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 19:36:40,deepseek/deepseek-chat,Advanced Fractal Explorer with Custom Algorithms,0.7,186.98,advanced_fractal_explorer_with_custom_algorithms_deepseek_deepseek-chat.html
+2024-09-23 19:37:04,openai/gpt-4o,Advanced Cellular Automaton with Multiple Rulesets,0.7,11.21,advanced_cellular_automaton_with_multiple_rulesets_openai_gpt-4o.html
+2024-09-23 19:37:49,google/gemini-pro-1.5-exp,Advanced Cellular Automaton with Multiple Rulesets,0.7,45.44,advanced_cellular_automaton_with_multiple_rulesets_google_gemini-pro-1.5-exp.html
+2024-09-23 19:39:17,qwen/qwen-2.5-72b-instruct,Advanced Cellular Automaton with Multiple Rulesets,0.7,87.78,advanced_cellular_automaton_with_multiple_rulesets_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 19:40:07,anthropic/claude-3.5-sonnet,Advanced Cellular Automaton with Multiple Rulesets,0.7,49.24,advanced_cellular_automaton_with_multiple_rulesets_anthropic_claude-3.5-sonnet.html
+2024-09-23 19:40:32,openai/o1-mini-2024-09-12,Advanced Cellular Automaton with Multiple Rulesets,0.7,25.40,advanced_cellular_automaton_with_multiple_rulesets_openai_o1-mini-2024-09-12.html
+2024-09-23 19:41:02,meta-llama/llama-3.1-405b-instruct,Advanced Cellular Automaton with Multiple Rulesets,0.7,30.28,advanced_cellular_automaton_with_multiple_rulesets_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 19:43:57,deepseek/deepseek-chat,Advanced Cellular Automaton with Multiple Rulesets,0.7,174.63,advanced_cellular_automaton_with_multiple_rulesets_deepseek_deepseek-chat.html
+2024-09-23 19:53:15,openai/gpt-4o,Interactive Fourier Transform Visualizer and Synthesizer,0.7,7.70,interactive_fourier_transform_visualizer_and_synthesizer_openai_gpt-4o.html
+2024-09-23 19:53:59,google/gemini-pro-1.5-exp,Interactive Fourier Transform Visualizer and Synthesizer,0.7,43.99,interactive_fourier_transform_visualizer_and_synthesizer_google_gemini-pro-1.5-exp.html
+2024-09-23 19:58:34,qwen/qwen-2.5-72b-instruct,Interactive Fourier Transform Visualizer and Synthesizer,0.7,274.84,interactive_fourier_transform_visualizer_and_synthesizer_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 19:59:11,anthropic/claude-3.5-sonnet,Interactive Fourier Transform Visualizer and Synthesizer,0.7,37.27,interactive_fourier_transform_visualizer_and_synthesizer_anthropic_claude-3.5-sonnet.html
+2024-09-23 19:59:33,openai/o1-mini-2024-09-12,Interactive Fourier Transform Visualizer and Synthesizer,0.7,21.53,interactive_fourier_transform_visualizer_and_synthesizer_openai_o1-mini-2024-09-12.html
+2024-09-23 20:00:08,meta-llama/llama-3.1-405b-instruct,Interactive Fourier Transform Visualizer and Synthesizer,0.7,34.94,interactive_fourier_transform_visualizer_and_synthesizer_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 20:03:19,deepseek/deepseek-chat,Interactive Fourier Transform Visualizer and Synthesizer,0.7,190.88,interactive_fourier_transform_visualizer_and_synthesizer_deepseek_deepseek-chat.html
+2024-09-23 20:25:14,openai/gpt-4o,Interactive Fourier Transform Visualizer and Synthesizer,0.7,10.73,interactive_fourier_transform_visualizer_and_synthesizer_openai_gpt-4o.html
+2024-09-23 20:25:36,google/gemini-pro-1.5-exp,Interactive Fourier Transform Visualizer and Synthesizer,0.7,22.03,interactive_fourier_transform_visualizer_and_synthesizer_google_gemini-pro-1.5-exp.html
+2024-09-23 20:26:38,qwen/qwen-2.5-72b-instruct,Interactive Fourier Transform Visualizer and Synthesizer,0.7,61.36,interactive_fourier_transform_visualizer_and_synthesizer_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 20:27:22,anthropic/claude-3.5-sonnet,Interactive Fourier Transform Visualizer and Synthesizer,0.7,44.10,interactive_fourier_transform_visualizer_and_synthesizer_anthropic_claude-3.5-sonnet.html
+2024-09-23 20:27:47,openai/o1-mini-2024-09-12,Interactive Fourier Transform Visualizer and Synthesizer,0.7,24.95,interactive_fourier_transform_visualizer_and_synthesizer_openai_o1-mini-2024-09-12.html
+2024-09-23 20:28:20,meta-llama/llama-3.1-405b-instruct,Interactive Fourier Transform Visualizer and Synthesizer,0.7,33.54,interactive_fourier_transform_visualizer_and_synthesizer_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 20:46:15,openai/gpt-4o,Monetizable and original SaaS,1.0,16.41,monetizable_and_original_saas_openai_gpt-4o.html
+2024-09-23 20:46:56,google/gemini-pro-1.5-exp,Monetizable and original SaaS,1.0,41.61,monetizable_and_original_saas_google_gemini-pro-1.5-exp.html
+2024-09-23 20:47:55,qwen/qwen-2.5-72b-instruct,Monetizable and original SaaS,1.0,59.11,monetizable_and_original_saas_qwen_qwen-2.5-72b-instruct.html
+2024-09-23 20:48:38,anthropic/claude-3.5-sonnet,Monetizable and original SaaS,1.0,42.56,monetizable_and_original_saas_anthropic_claude-3.5-sonnet.html
+2024-09-23 20:49:11,openai/o1-mini-2024-09-12,Monetizable and original SaaS,1.0,33.50,monetizable_and_original_saas_openai_o1-mini-2024-09-12.html
+2024-09-23 20:50:02,meta-llama/llama-3.1-405b-instruct,Monetizable and original SaaS,1.0,50.81,monetizable_and_original_saas_meta-llama_llama-3.1-405b-instruct.html
+2024-09-23 20:53:34,deepseek/deepseek-chat,Monetizable and original SaaS,1.0,211.27,monetizable_and_original_saas_deepseek_deepseek-chat.html
