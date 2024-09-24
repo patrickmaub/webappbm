@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Cellular Automaton with Multiple Rulesets</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #2c3e50;
+            color: #ecf0f1;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        canvas {
+            background: #34495e;
+            border: 2px solid #ecf0f1;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+            width: 80%;
+        }
+        .controls select, .controls button {
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            background: #3498db;
+            color: #ecf0f1;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .controls select:hover, .controls button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced Cellular Automaton with Multiple Rulesets</h1>
+    <canvas id="automatonCanvas" width="800" height="600"></canvas>
+    <div class="controls">
+        <select id="rulesetSelect">
+            <option value="1">Rule 1: Conway's Game of Life</option>
+            <option value="2">Rule 2: High Life</option>
+            <option value="3">Rule 3: Day & Night</option>
+            <option value="4">Rule 4: Seeds</option>
+            <option value="5">Rule 5: Brian's Brain</option>
+        </select>
+        <button id="startButton">Start</button>
+        <button id="stopButton">Stop</button>
+        <button id="resetButton">Reset</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('automatonCanvas');
+        const ctx = canvas.getContext('2d');
+        const cellSize = 10;
+        const rows = canvas.height / cellSize;
+        const cols = canvas.width / cellSize;
+        let grid = [];
+        let interval;
+
+        function createGrid() {
+            return Array.from({ length: rows }, () =>
+                Array.from({ length: cols }, () => Math.random() > 0.7 ? 1 : 0)
+            );
+        }
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = grid[r][c];
+                    ctx.fillStyle = cell ? '#e74c3c' : '#2ecc71';
+                    ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+
+        function getNeighbors(r, c) {
+            const directions = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1],         [0, 1],
+                [1, -1], [1, 0], [1, 1]
+            ];
+            return directions.reduce((count, [dr, dc]) => {
+                const nr = (r + dr + rows) % rows;
+                const nc = (c + dc + cols) % cols;
+                return count + grid[nr][nc];
+            }, 0);
+        }
+
+        function applyRules(rule) {
+            const newGrid = createGrid();
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const neighbors = getNeighbors(r, c);
+                    const cell = grid[r][c];
+                    if (rule === 1) { // Conway's Game of Life
+                        if (cell && (neighbors < 2 || neighbors > 3)) newGrid[r][c] = 0;
+                        else if (!cell && neighbors === 3) newGrid[r][c] = 1;
+                        else newGrid[r][c] = cell;
+                    } else if (rule === 2) { // High Life
+                        if (cell && (neighbors < 2 || neighbors > 3)) newGrid[r][c] = 0;
+                        else if (!cell && (neighbors === 3 || neighbors === 6)) newGrid[r][c] = 1;
+                        else newGrid[r][c] = cell;
+                    } else if (rule === 3) { // Day & Night
+                        if (cell && (neighbors < 3 || neighbors > 5)) newGrid[r][c] = 0;
+                        else if (!cell && (neighbors === 3 || neighbors === 6)) newGrid[r][c] = 1;
+                        else newGrid[r][c] = cell;
+                    } else if (rule === 4) { // Seeds
+                        if (cell) newGrid[r][c] = 0;
+                        else if (neighbors === 2) newGrid[r][c] = 1;
+                        else newGrid[r][c] = 0;
+                    } else if (rule === 5) { // Brian's Brain
+                        if (cell === 1) newGrid[r][c] = 2;
+                        else if (cell === 2) newGrid[r][c] = 0;
+                        else if (neighbors === 2) newGrid[r][c] = 1;
+                        else newGrid[r][c] = 0;
+                    }
+                }
+            }
+            grid = newGrid;
+        }
+
+        function startSimulation() {
+            const rule = parseInt(document.getElementById('rulesetSelect').value);
+            interval = setInterval(() => {
+                applyRules(rule);
+                drawGrid();
+            }, 100);
+        }
+
+        function stopSimulation() {
+            clearInterval(interval);
+        }
+
+        function resetSimulation() {
+            stopSimulation();
+            grid = createGrid();
+            drawGrid();
+        }
+
+        document.getElementById('startButton').addEventListener('click', startSimulation);
+        document.getElementById('stopButton').addEventListener('click', stopSimulation);
+        document.getElementById('resetButton').addEventListener('click', resetSimulation);
+
+        grid = createGrid();
+        drawGrid();
+    </script>
+</body>
+</html>
+
+<!--
+This single-page application provides a highly interactive and visually appealing experience for exploring advanced cellular automata with multiple rulesets.
+The user can select from different rulesets, start, stop, and reset the simulation, all within a sleek and responsive design.
+-->

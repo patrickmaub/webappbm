@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Realistic Fluid Dynamics Simulator</title>
+<style>
+body { margin: 0; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('myCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const N = 128; // Grid resolution
+const size = canvas.width / N;
+const dt = 0.1; // Time step
+const diff = 0.001; // Diffusion rate
+const visc = 0.001; // Viscosity
+
+let u = new Array(N).fill(0).map(() => new Array(N).fill(0));
+let v = new Array(N).fill(0).map(() => new Array(N).fill(0));
+let u_prev = new Array(N).fill(0).map(() => new Array(N).fill(0));
+let v_prev = new Array(N).fill(0).map(() => new Array(N).fill(0));
+let dens = new Array(N).fill(0).map(() => new Array(N).fill(0));
+let dens_prev = new Array(N).fill(0).map(() => new Array(N).fill(0));
+
+function addDensity(x, y, amount) {
+  dens[x][y] += amount;
+}
+
+function addVelocity(x, y, amountX, amountY) {
+  u[x][y] += amountX;
+  v[x][y] += amountY;
+}
+
+function diffuse(b, x, x0, diff) {
+  let a = dt * diff * (N - 2) * (N - 2);
+  for (let k = 0; k < 20; k++) {
+    for (let i = 1; i < N - 1; i++) {
+      for (let j = 1; j < N - 1; j++) {
+        x[i][j] = (x0[i][j] + a * (x[i - 1][j] + x[i + 1][j] + x[i][j - 1] + x[i][j + 1])) / (1 + 4 * a);
+      }
+    }
+    set_bnd(b, x);
+  }
+}
+
+function advect(b, d, d0, velocX, velocY) {
+  let i0, i1, j0, j1;
+  let x, y, s0, t0, s1, t1, dt0;
+
+  dt0 = dt * (N - 2);
+  for (let i = 1; i < N - 1; i++) {
+    for (let j = 1; j < N - 1; j++) {
+      x = i - dt0 * velocX[i][j];
+      y = j - dt0 * velocY[i][j];
+      if (x < 0.5) x = 0.5;
+      if (x > N + 0.5) x = N + 0.5;
+      i0 = Math.floor(x);
+      i1 = i0 + 1.0;
+      if (y < 0.5) y = 0.5;
+      if (y > N + 0.5) y = N + 0.5;
+      j0 = Math.floor(y);
+      j1 = j0 + 1.0;
+      s1 = x - i0;
+      s0 = 1.0 - s1;
+      t1 = y - j0;
+      t0 = 1.0 - t1;
+      d[i][j] = s0 * (t0 * d0[i0][j0] + t1 * d0[i0][j1]) + s1 * (t0 * d0[i1][j0] + t1 * d0[i1][j1]);
+    }
+  }
+  set_bnd(b, d);
+}
+
+function project(velocX, velocY, p, div) {
+  for (let i = 1; i < N - 1; i++) {
+    for (let j = 1; j < N - 1; j++) {
+      div[i][j] = -0.5 * (velocX[i + 1][j] - velocX[i - 1][j] + velocY[i][j + 1] - velocY[i][j - 1]) / N;
+      p[i][j] = 0;
+    }
+  }
+  set_bnd(0, div);
+  set_bnd(0, p);
+  for (let k = 0; k < 20; k++) {
+    for (let i = 1; i < N - 1; i++) {
+      for (let j = 1; j < N - 1; j++) {
+        p[i][j] = (div[i][j] + p[i - 1][j] + p[i + 1][j] + p[i][j - 1] + p[i][j + 1]) / 4;
+      }
+    }
+    set_bnd(0, p);
+  }
+  for (let i = 1; i < N - 1; i++) {
+    for (let j = 1; j < N - 1; j++) {
+      velocX[i][j] -= 0.5 * (p[i + 1][j] - p[i - 1][j]) * N;
+      velocY[i][j] -= 0.5 * (p[i][j + 1] - p[i][j - 1]) * N;
+    }
+  }
+  set_bnd(1, velocX);
+  set_bnd(2, velocY);
+}
+
+function dens_step() {
+  diffuse(0, dens_prev, dens, diff);
+  advect(0, dens, dens_prev, u, v);
+}
+
+function vel_step() {
+  diffuse(1, u_prev, u, visc);
+  diffuse(2, v_prev, v, visc);
+  project(u_prev, v_prev, u, v);
+  advect(1, u, u_prev, u_prev, v_prev);
+  advect(2, v, v_prev, u_prev, v_prev);
+  project(u, v, u_prev, v_prev);
+}
+
+function set_bnd(b, x) {
+  for (let i = 1; i < N - 1; i++) {
+    x[i][0] = b === 2 ? -x[i][1] : x[i][1];
+    x[i][N - 1] = b === 2 ? -x[i][N - 2] : x[i][N - 2];
+  }
+  for (let j = 1; j < N - 1; j++) {
+    x[0][j] = b === 1 ? -x[1][j] : x[1][j];
+    x[N - 1][j] = b === 1 ? -x[N - 2][j] : x[N - 2][j];
+  }
+
+  x[0][0] = 0.5 * (x[1][0] + x[0][1]);
+  x[0][N - 1] = 0.5 * (x[1][N - 1] + x[0][N - 2]);
+  x[N - 1][0] = 0.5 * (x[N - 2][0] + x[N - 1][1]);
+  x[N - 1][N - 1] = 0.5 * (x[N - 2][N - 1] + x[N - 1][N - 2]);
+}
+
+function renderDensity() {
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const d = dens[i][j];
+      ctx.fillStyle = `rgba(${Math.floor(d * 255)}, ${Math.floor(d * 255)}, ${Math.floor(d * 255)}, ${Math.min(d, 1)})`;
+      ctx.fillRect(i * size, j * size, size, size);
+    }
+  }
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  const x = Math.floor(e.offsetX / size);
+  const y = Math.floor(e.offsetY / size);
+  addDensity(x, y, 50);
+  addVelocity(x, y, (e.offsetX - x * size) / size, (e.offsetY - y * size) / size);
+});
+
+function simulate() {
+  vel_step();
+  dens_step();
+  renderDensity();
+  requestAnimationFrame(simulate);
+}
+
+simulate();
+</script>
+
+</body>
+</html>

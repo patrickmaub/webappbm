@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Procedural Terrain Generator with Erosion Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        #gui-container {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 100;
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gui-container"></div>
+    <div id="info">
+        <p><strong>Procedural Terrain Generator with Erosion Simulation</strong></p>
+        <p>Use the controls to generate terrain and simulate erosion.</p>
+    </div>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- dat.GUI Library -->
+    <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.7/build/dat.gui.min.js"></script>
+    <!-- Simplex Noise Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script>
+        // Scene, Camera, Renderer Setup
+        let scene, camera, renderer, controls;
+        let terrainMesh;
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        // Terrain Parameters
+        const terrainParams = {
+            width: 200,
+            height: 200,
+            segments: 256,
+            noiseScale: 50,
+            elevation: 20,
+            seed: Math.random(),
+            regenerate: regenerateTerrain
+        };
+
+        // Erosion Parameters
+        const erosionParams = {
+            iterations: 100000,
+            inertia: 0.05,
+            sedimentCapacity: 4,
+            minSedimentCapacity: 0.01,
+            deposition: 0.1,
+            erosion: 0.3,
+            evaporation: 0.02,
+            gravity: 4,
+            startErosion: startErosion,
+            resetErosion: resetErosion
+        };
+
+        let heightMap = [];
+        let originalHeightMap = [];
+        let simplex = new SimplexNoise();
+
+        // Initialize Scene
+        function init() {
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(0, 150, 200);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            document.body.appendChild(renderer.domElement);
+
+            // Light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 100, 100);
+            scene.add(directionalLight);
+
+            // Generate Terrain
+            generateHeightMap();
+            createTerrainMesh();
+
+            // GUI Controls
+            const gui = new dat.GUI({ autoPlace: false });
+            document.getElementById('gui-container').appendChild(gui.domElement);
+
+            const terrainFolder = gui.addFolder('Terrain');
+            terrainFolder.add(terrainParams, 'noiseScale', 10, 100).name('Noise Scale');
+            terrainFolder.add(terrainParams, 'elevation', 5, 50).name('Elevation');
+            terrainFolder.add(terrainParams, 'seed', 0, 1).step(0.0001).name('Seed').onChange(() => {
+                simplex = new SimplexNoise(terrainParams.seed);
+            });
+            terrainFolder.add(terrainParams, 'regenerate').name('Regenerate Terrain');
+            terrainFolder.open();
+
+            const erosionFolder = gui.addFolder('Erosion');
+            erosionFolder.add(erosionParams, 'iterations', 1000, 1000000).step(1000).name('Iterations');
+            erosionFolder.add(erosionParams, 'inertia', 0.01, 0.3).name('Inertia');
+            erosionFolder.add(erosionParams, 'sedimentCapacity', 1, 10).name('Sediment Capacity');
+            erosionFolder.add(erosionParams, 'minSedimentCapacity', 0.001, 0.1).name('Min Capacity');
+            erosionFolder.add(erosionParams, 'deposition', 0.01, 1).name('Deposition');
+            erosionFolder.add(erosionParams, 'erosion', 0.01, 1).name('Erosion');
+            erosionFolder.add(erosionParams, 'evaporation', 0.01, 0.1).name('Evaporation');
+            erosionFolder.add(erosionParams, 'gravity', 1, 10).name('Gravity');
+            erosionFolder.add(erosionParams, 'startErosion').name('Start Erosion');
+            erosionFolder.add(erosionParams, 'resetErosion').name('Reset Erosion');
+            erosionFolder.open();
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            animate();
+        }
+
+        // Window Resize Handler
+        function onWindowResize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        // Generate Height Map using Simplex Noise
+        function generateHeightMap() {
+            heightMap = [];
+            const size = terrainParams.segments + 1;
+            for (let i = 0; i <= terrainParams.segments; i++) {
+                heightMap[i] = [];
+                for (let j = 0; j <= terrainParams.segments; j++) {
+                    const x = i / terrainParams.segments;
+                    const y = j / terrainParams.segments;
+                    const noise = simplex.noise2D(x * terrainParams.noiseScale, y * terrainParams.noiseScale);
+                    heightMap[i][j] = noise * terrainParams.elevation;
+                }
+            }
+            // Deep copy for erosion reset
+            originalHeightMap = heightMap.map(arr => arr.slice());
+        }
+
+        // Create Terrain Mesh
+        function createTerrainMesh() {
+            if (terrainMesh) {
+                scene.remove(terrainMesh);
+                terrainMesh.geometry.dispose();
+                terrainMesh.material.dispose();
+            }
+
+            const geometry = new THREE.PlaneGeometry(
+                terrainParams.width,
+                terrainParams.height,
+                terrainParams.segments,
+                terrainParams.segments
+            );
+            geometry.rotateX(-Math.PI / 2);
+
+            for (let i = 0; i < geometry.attributes.position.count; i++) {
+                const x = i % (terrainParams.segments + 1);
+                const y = Math.floor(i / (terrainParams.segments + 1));
+                geometry.attributes.position.setY(i, heightMap[x][y]);
+            }
+
+            geometry.computeVertexNormals();
+
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x556b2f,
+                wireframe: false,
+                flatShading: false,
+                vertexColors: false
+            });
+
+            terrainMesh = new THREE.Mesh(geometry, material);
+            scene.add(terrainMesh);
+        }
+
+        // Regenerate Terrain
+        function regenerateTerrain() {
+            simplex = new SimplexNoise(terrainParams.seed);
+            generateHeightMap();
+            createTerrainMesh();
+        }
+
+        // Erosion Simulation
+        async function startErosion() {
+            const iterations = erosionParams.iterations;
+            for (let i = 0; i < iterations; i++) {
+                simulateErosionStep();
+                if (i % 1000 === 0) {
+                    updateTerrainMesh();
+                    await new Promise(resolve => setTimeout(resolve, 0)); // Yield to UI
+                }
+            }
+            updateTerrainMesh();
+        }
+
+        // Reset Erosion
+        function resetErosion() {
+            heightMap = originalHeightMap.map(arr => arr.slice());
+            updateTerrainMesh();
+        }
+
+        // Simulate a Single Erosion Step (Hydraulic Erosion)
+        function simulateErosionStep() {
+            // Randomly select a droplet
+            let x = Math.random() * terrainParams.segments;
+            let y = Math.random() * terrainParams.segments;
+            let dirX = 0;
+            let dirY = 0;
+            let speed = 1;
+            let water = 1;
+            let sediment = 0;
+
+            for (let step = 0; step < 30; step++) {
+                const cellX = Math.floor(x);
+                const cellY = Math.floor(y);
+                const fracX = x - cellX;
+                const fracY = y - cellY;
+
+                // Calculate height and gradient
+                const height00 = heightMap[cellX][cellY];
+                const height10 = heightMap[cellX + 1]?.[cellY] || height00;
+                const height01 = heightMap[cellX][cellY + 1] || height00;
+                const height11 = heightMap[cellX + 1]?.[cellY + 1] || height00;
+
+                const height = bilinearInterpolation(fracX, fracY, height00, height10, height01, height11);
+                const gradientX = (height10 - height00) * (1 - fracY) + (height11 - height01) * fracY;
+                const gradientY = (height01 - height00) * (1 - fracX) + (height11 - height10) * fracX;
+
+                // Update direction
+                dirX = dirX * erosionParams.inertia - gradientX * (1 - erosionParams.inertia);
+                dirY = dirY * erosionParams.inertia - gradientY * (1 - erosionParams.inertia);
+
+                // Normalize direction
+                const len = Math.sqrt(dirX * dirX + dirY * dirY);
+                if (len !== 0) {
+                    dirX /= len;
+                    dirY /= len;
+                }
+
+                x += dirX;
+                y += dirY;
+
+                // Stop if out of bounds
+                if (x < 0 || x >= terrainParams.segments || y < 0 || y >= terrainParams.segments) {
+                    break;
+                }
+
+                // Calculate new height
+                const newCellX = Math.floor(x);
+                const newCellY = Math.floor(y);
+                const newFracX = x - newCellX;
+                const newFracY = y - newCellY;
+
+                const newHeight00 = heightMap[newCellX][newCellY];
+                const newHeight10 = heightMap[newCellX + 1]?.[newCellY] || newHeight00;
+                const newHeight01 = heightMap[newCellX][newCellY + 1] || newHeight00;
+                const newHeight11 = heightMap[newCellX + 1]?.[newCellY + 1] || newHeight00;
+
+                const newHeightVal = bilinearInterpolation(newFracX, newFracY, newHeight00, newHeight10, newHeight01, newHeight11);
+                const deltaHeight = newHeightVal - height;
+
+                // Update speed and water
+                speed = Math.sqrt(speed * speed + deltaHeight * erosionParams.gravity);
+                if (deltaHeight > 0) {
+                    sediment += deltaHeight * erosionParams.erosion;
+                } else {
+                    sediment -= deltaHeight * erosionParams.deposition;
+                }
+
+                // Clamp sediment
+                sediment = Math.max(0, sediment);
+            }
+
+            // Apply sediment to height map
+            const finalX = Math.floor(x);
+            const finalY = Math.floor(y);
+            if (finalX >= 0 && finalX <= terrainParams.segments && finalY >= 0 && finalY <= terrainParams.segments) {
+                heightMap[finalX][finalY] += sediment;
+            }
+        }
+
+        // Bilinear Interpolation
+        function bilinearInterpolation(x, y, h00, h10, h01, h11) {
+            const a = h00 * (1 - x) + h10 * x;
+            const b = h01 * (1 - x) + h11 * x;
+            return a * (1 - y) + b * y;
+        }
+
+        // Update Terrain Mesh
+        function updateTerrainMesh() {
+            const positions = terrainMesh.geometry.attributes.position;
+            for (let i = 0; i <= terrainParams.segments; i++) {
+                for (let j = 0; j <= terrainParams.segments; j++) {
+                    const index = i * (terrainParams.segments + 1) + j;
+                    positions.setY(index, heightMap[i][j]);
+                }
+            }
+            positions.needsUpdate = true;
+            terrainMesh.geometry.computeVertexNormals();
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>

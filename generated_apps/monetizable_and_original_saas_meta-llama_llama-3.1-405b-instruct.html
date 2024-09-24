@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creative Canvas</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+  <style>
+    /* Custom Styles */
+    body {
+      font-family: 'Open Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #app {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+   .toolbar {
+      background-color: #333;
+      color: #fff;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+   .toolbar button {
+      background-color: #444;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+   .canvas-container {
+      flex: 1;
+      overflow: auto;
+    }
+   .canvas {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #ddd;
+    }
+   .collaborators {
+      padding: 20px;
+    }
+   .collaborators ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+   .collaborators li {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+   .collaborators li img {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="toolbar">
+      <button id="save-btn">Save</button>
+      <button id="share-btn">Share</button>
+      <button id="logout-btn">Logout</button>
+      <div class="collaborators">
+        <ul id="collaborators-list"></ul>
+      </div>
+    </div>
+    <div class="canvas-container">
+      <canvas id="canvas" class="canvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // App State
+    let authenticated = false;
+    let username = '';
+    let canvasState = {
+      drawings: [],
+      collaborators: []
+    };
+
+    // DOM Elements
+    const saveBtn = document.getElementById('save-btn');
+    const shareBtn = document.getElementById('share-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const collaboratorsList = document.getElementById('collaborators-list');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Event Listeners
+    saveBtn.addEventListener('click', saveCanvas);
+    shareBtn.addEventListener('click', shareCanvas);
+    logoutBtn.addEventListener('click', logout);
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+
+    // Functions
+    function saveCanvas() {
+      // Simulate saving the canvas state
+      console.log('Canvas saved!');
+    }
+
+    function shareCanvas() {
+      // Simulate sharing the canvas state
+      console.log('Canvas shared!');
+    }
+
+    function logout() {
+      // Simulate logging out
+      authenticated = false;
+      username = '';
+      canvasState.collaborators = [];
+      renderCollaborators();
+    }
+
+    function startDrawing(e) {
+      // Start drawing on the canvas
+      ctx.beginPath();
+      ctx.moveTo(e.clientX, e.clientY);
+      canvasState.drawings.push({ x: e.clientX, y: e.clientY });
+    }
+
+    function draw(e) {
+      // Draw on the canvas
+      ctx.lineTo(e.clientX, e.clientY);
+      ctx.stroke();
+      canvasState.drawings.push({ x: e.clientX, y: e.clientY });
+    }
+
+    function stopDrawing() {
+      // Stop drawing on the canvas
+      ctx.closePath();
+    }
+
+    function renderCollaborators() {
+      // Render the collaborators list
+      collaboratorsList.innerHTML = '';
+      canvasState.collaborators.forEach(collaborator => {
+        const li = document.createElement('li');
+        const img = document.createElement('img');
+        img.src = `https://picsum.photos/30/30?random=${Math.random()}`;
+        li.appendChild(img);
+        li.appendChild(document.createTextNode(collaborator.username));
+        collaboratorsList.appendChild(li);
+      });
+    }
+
+    // Initialize the app
+    function init() {
+      // Simulate authentication
+      authenticated = true;
+      username = 'John Doe';
+      canvasState.collaborators = [
+        { username: 'Jane Doe' },
+        { username: 'Bob Smith' }
+      ];
+      renderCollaborators();
+    }
+
+    init();
+  </script>
+</body>
+</html>

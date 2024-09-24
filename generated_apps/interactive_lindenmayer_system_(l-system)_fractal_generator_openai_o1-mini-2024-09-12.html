@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive L-System Fractal Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        /* Reset and basic styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+        }
+
+        header {
+            background-color: #333;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+
+        .controls {
+            width: 300px;
+            background-color: #2e2e2e;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .controls h2 {
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .control-group input[type="text"],
+        .control-group input[type="number"],
+        .control-group textarea,
+        .control-group select {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            background-color: #444;
+            color: #f0f0f0;
+        }
+
+        .control-group textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        .control-group button {
+            padding: 10px;
+            width: 100%;
+            border: none;
+            border-radius: 4px;
+            background-color: #555;
+            color: #f0f0f0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .control-group button:hover {
+            background-color: #666;
+        }
+
+        .presets {
+            margin-top: 20px;
+        }
+
+        .presets h3 {
+            margin-bottom: 10px;
+            font-size: 18px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        .preset-buttons button {
+            margin-bottom: 10px;
+            padding: 8px;
+            width: 100%;
+            border: none;
+            border-radius: 4px;
+            background-color: #555;
+            color: #f0f0f0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .preset-buttons button:hover {
+            background-color: #666;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background-color: #000;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        footer {
+            background-color: #333;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        /* Scrollbar styling */
+        .controls::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .controls::-webkit-scrollbar-track {
+            background: #2e2e2e;
+        }
+
+        .controls::-webkit-scrollbar-thumb {
+            background-color: #555;
+            border-radius: 4px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 800px) {
+            main {
+                flex-direction: column;
+            }
+
+            .controls {
+                width: 100%;
+                height: 50%;
+            }
+
+            .canvas-container {
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        Interactive L-System Fractal Generator
+    </header>
+    <main>
+        <div class="controls">
+            <h2>Parameters</h2>
+            <div class="control-group">
+                <label for="axiom">Axiom</label>
+                <input type="text" id="axiom" value="F">
+            </div>
+            <div class="control-group">
+                <label for="rules">Production Rules (one per line, e.g., F=F+F−F−F+F)</label>
+                <textarea id="rules">F=F+F−F−F+F</textarea>
+            </div>
+            <div class="control-group">
+                <label for="angle">Angle (degrees)</label>
+                <input type="number" id="angle" value="90">
+            </div>
+            <div class="control-group">
+                <label for="iterations">Iterations</label>
+                <input type="number" id="iterations" value="4" min="0" max="10">
+            </div>
+            <div class="control-group">
+                <label for="length">Step Length</label>
+                <input type="number" id="length" value="5" min="1" max="100">
+            </div>
+            <div class="control-group">
+                <label for="linewidth">Line Width</label>
+                <input type="number" id="linewidth" value="1" min="0.1" step="0.1">
+            </div>
+            <div class="control-group">
+                <label for="startPosition">Start Position (x,y)</label>
+                <input type="text" id="startPosition" value="0,0">
+            </div>
+            <div class="control-group">
+                <label for="startAngle">Start Angle (degrees)</label>
+                <input type="number" id="startAngle" value="0">
+            </div>
+            <div class="control-group">
+                <label for="colors">Colors (comma-separated)</label>
+                <input type="text" id="colors" value="#00FF00">
+            </div>
+            <div class="control-group">
+                <button id="generate">Generate Fractal</button>
+            </div>
+            <div class="presets">
+                <h3>Presets</h3>
+                <div class="preset-buttons">
+                    <button data-preset="koch">Koch Curve</button>
+                    <button data-preset="sierpinski">Sierpinski Triangle</button>
+                    <button data-preset="dragon">Dragon Curve</button>
+                    <button data-preset="fractalPlant">Fractal Plant</button>
+                    <button data-preset="custom">Clear Custom</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <button id="download">Download Image</button>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="fractalCanvas"></canvas>
+        </div>
+    </main>
+    <footer>
+        &copy; 2023 L-System Fractal Generator. All rights reserved.
+    </footer>
+
+    <script>
+        // L-System Fractal Generator Script
+        (function() {
+            const canvas = document.getElementById('fractalCanvas');
+            const ctx = canvas.getContext('2d');
+            let width, height, devicePixelRatio;
+
+            function resizeCanvas() {
+                devicePixelRatio = window.devicePixelRatio || 1;
+                width = canvas.clientWidth * devicePixelRatio;
+                height = canvas.clientHeight * devicePixelRatio;
+                canvas.width = width;
+                canvas.height = height;
+                ctx.scale(devicePixelRatio, devicePixelRatio);
+                drawFractal();
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Get DOM elements
+            const axiomInput = document.getElementById('axiom');
+            const rulesInput = document.getElementById('rules');
+            const angleInput = document.getElementById('angle');
+            const iterationsInput = document.getElementById('iterations');
+            const lengthInput = document.getElementById('length');
+            const linewidthInput = document.getElementById('linewidth');
+            const startPosInput = document.getElementById('startPosition');
+            const startAngleInput = document.getElementById('startAngle');
+            const colorsInput = document.getElementById('colors');
+            const generateButton = document.getElementById('generate');
+            const presetsButtons = document.querySelectorAll('.preset-buttons button');
+            const downloadButton = document.getElementById('download');
+
+            // Event listeners
+            generateButton.addEventListener('click', drawFractal);
+            presetsButtons.forEach(button => {
+                button.addEventListener('click', () => loadPreset(button.dataset.preset));
+            });
+            downloadButton.addEventListener('click', downloadImage);
+
+            // Presets data
+            const presets = {
+                koch: {
+                    axiom: "F",
+                    rules: "F=F+F−F−F+F",
+                    angle: 90,
+                    iterations: 4,
+                    length: 5,
+                    linewidth: 1,
+                    startPosition: "0,0",
+                    startAngle: 0,
+                    colors: "#00FF00"
+                },
+                sierpinski: {
+                    axiom: "F-G-G",
+                    rules: "F=F-G+F+G-F\nG=GG",
+                    angle: 120,
+                    iterations: 5,
+                    length: 5,
+                    linewidth: 1,
+                    startPosition: "0,0",
+                    startAngle: 0,
+                    colors: "#FF0000,#0000FF"
+                },
+                dragon: {
+                    axiom: "FX",
+                    rules: "X=X+YF+\nY=-FX-Y",
+                    angle: 90,
+                    iterations: 10,
+                    length: 5,
+                    linewidth: 1,
+                    startPosition: "0,0",
+                    startAngle: 0,
+                    colors: "#FFA500,#800080"
+                },
+                fractalPlant: {
+                    axiom: "X",
+                    rules: "X=F-[[X]+X]+F[+FX]-X\nF=FF",
+                    angle: 25,
+                    iterations: 5,
+                    length: 5,
+                    linewidth: 1,
+                    startPosition: "400,600",
+                    startAngle: -90,
+                    colors: "#00FF00,#228B22"
+                }
+            };
+
+            function loadPreset(name) {
+                if (name === 'custom') {
+                    axiomInput.value = "";
+                    rulesInput.value = "";
+                    angleInput.value = 0;
+                    iterationsInput.value = 0;
+                    lengthInput.value = 5;
+                    linewidthInput.value = 1;
+                    startPosInput.value = "0,0";
+                    startAngleInput.value = 0;
+                    colorsInput.value = "#FFFFFF";
+                } else {
+                    const preset = presets[name];
+                    axiomInput.value = preset.axiom;
+                    rulesInput.value = preset.rules;
+                    angleInput.value = preset.angle;
+                    iterationsInput.value = preset.iterations;
+                    lengthInput.value = preset.length;
+                    linewidthInput.value = preset.linewidth;
+                    startPosInput.value = preset.startPosition;
+                    startAngleInput.value = preset.startAngle;
+                    colorsInput.value = preset.colors;
+                }
+                drawFractal();
+            }
+
+            function downloadImage() {
+                const link = document.createElement('a');
+                link.download = 'fractal.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+
+            // L-System functions
+            function generateLSystem(axiom, rules, iterations) {
+                let current = axiom;
+                for (let i = 0; i < iterations; i++) {
+                    let next = '';
+                    for (let char of current) {
+                        next += rules[char] || char;
+                    }
+                    current = next;
+                }
+                return current;
+            }
+
+            function parseRules(rulesText) {
+                const rules = {};
+                const lines = rulesText.split('\n');
+                for (let line of lines) {
+                    const parts = line.split('=');
+                    if (parts.length === 2) {
+                        const key = parts[0].trim();
+                        const value = parts[1].trim();
+                        rules[key] = value;
+                    }
+                }
+                return rules;
+            }
+
+            function drawFractal() {
+                // Clear canvas
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
+
+                // Get parameters
+                const axiom = axiomInput.value.trim() || "F";
+                const rules = parseRules(rulesInput.value);
+                const angle = parseFloat(angleInput.value) || 0;
+                const iterations = parseInt(iterationsInput.value) || 0;
+                const step = parseFloat(lengthInput.value) || 5;
+                const lineWidth = parseFloat(linewidthInput.value) || 1;
+                const startPos = startPosInput.value.split(',').map(Number);
+                const startAngle = parseFloat(startAngleInput.value) || 0;
+                const colors = colorsInput.value.split(',').map(c => c.trim()).filter(c => c);
+
+                // Generate L-System
+                const commandString = generateLSystem(axiom, rules, iterations);
+
+                // Initialize drawing state
+                let x = startPos[0] || canvas.clientWidth / 2;
+                let y = startPos[1] || canvas.clientHeight;
+                let currentAngle = startAngle;
+                const stack = [];
+                ctx.lineWidth = lineWidth;
+                ctx.strokeStyle = colors.length > 0 ? colors[0] : '#FFFFFF';
+                let colorIndex = 0;
+
+                // Precompute angle in radians
+                const angleRad = angle * Math.PI / 180;
+
+                // Set origin to center if not specified
+                if (!startPosInput.value.trim()) {
+                    x = canvas.clientWidth / 2;
+                    y = canvas.clientHeight;
+                }
+
+                // Begin drawing
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+
+                for (let char of commandString) {
+                    switch(char) {
+                        case 'F':
+                        case 'G':
+                        case 'X':
+                        case 'Y':
+                            // Draw forward
+                            const newX = x + step * Math.cos(currentAngle);
+                            const newY = y - step * Math.sin(currentAngle);
+                            ctx.lineTo(newX, newY);
+                            x = newX;
+                            y = newY;
+                            if (colors.length > 1) {
+                                colorIndex = (colorIndex + 1) % colors.length;
+                                ctx.strokeStyle = colors[colorIndex];
+                            }
+                            break;
+                        case '+':
+                            // Turn right
+                            currentAngle -= angleRad;
+                            break;
+                        case '-':
+                            // Turn left
+                            currentAngle += angleRad;
+                            break;
+                        case '[':
+                            // Push state
+                            stack.push({x, y, angle: currentAngle, colorIndex});
+                            break;
+                        case ']':
+                            // Pop state
+                            if (stack.length > 0) {
+                                const state = stack.pop();
+                                x = state.x;
+                                y = state.y;
+                                currentAngle = state.angle;
+                                colorIndex = state.colorIndex;
+                                ctx.moveTo(x, y);
+                                if (colors.length > 1) {
+                                    ctx.strokeStyle = colors[colorIndex];
+                                }
+                            }
+                            break;
+                        default:
+                            // Ignore other characters
+                            break;
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Initial draw
+            drawFractal();
+        })();
+    </script>
+</body>
+</html>

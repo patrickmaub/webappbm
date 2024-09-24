@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>L-System Fractal Generator</title>
+<style>
+body { margin: 0; overflow: hidden; }
+canvas { display: block; }
+#controls { position: absolute; top: 10px; left: 10px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div id="controls">
+  <h2>L-System Fractal Generator</h2>
+  <label for="axiom">Axiom:</label>
+  <input type="text" id="axiom" value="F"><br><br>
+  <label for="rules">Rules (comma-separated):</label>
+  <input type="text" id="rules" value="F=F+F--F+F"><br><br>
+  <label for="angle">Angle (degrees):</label>
+  <input type="number" id="angle" value="60"><br><br>
+  <label for="iterations">Iterations:</label>
+  <input type="number" id="iterations" value="4" min="1"><br><br>
+  <label for="length">Length:</label>
+  <input type="number" id="length" value="10" min="1"><br><br>
+  <button onclick="generateFractal()">Generate</button>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function generateFractal() {
+  const axiom = document.getElementById('axiom').value;
+  const rules = document.getElementById('rules').value.split(',').map(rule => rule.split('='));
+  const angle = parseFloat(document.getElementById('angle').value) * Math.PI / 180;
+  const iterations = parseInt(document.getElementById('iterations').value);
+  const length = parseInt(document.getElementById('length').value);
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let currentString = axiom;
+  for (let i = 0; i < iterations; i++) {
+    let newString = '';
+    for (let j = 0; j < currentString.length; j++) {
+      const char = currentString[j];
+      let foundRule = false;
+      for (const rule of rules) {
+        if (rule[0] === char) {
+          newString += rule[1];
+          foundRule = true;
+          break;
+        }
+      }
+      if (!foundRule) {
+        newString += char;
+      }
+    }
+    currentString = newString;
+  }
+
+  ctx.beginPath();
+  let x = canvas.width / 2;
+  let y = canvas.height / 2;
+  let currentAngle = 0;
+  const stack = [];
+
+  for (let i = 0; i < currentString.length; i++) {
+    const char = currentString[i];
+    switch (char) {
+      case 'F':
+        const newX = x + length * Math.cos(currentAngle);
+        const newY = y + length * Math.sin(currentAngle);
+        ctx.moveTo(x, y);
+        ctx.lineTo(newX, newY);
+        x = newX;
+        y = newY;
+        break;
+      case '+':
+        currentAngle += angle;
+        break;
+      case '-':
+        currentAngle -= angle;
+        break;
+      case '[':
+        stack.push({ x: x, y: y, angle: currentAngle });
+        break;
+      case ']':
+        const state = stack.pop();
+        x = state.x;
+        y = state.y;
+        currentAngle = state.angle;
+        break;
+    }
+  }
+
+  ctx.stroke();
+}
+
+generateFractal(); 
+</script>
+
+</body>
+</html>

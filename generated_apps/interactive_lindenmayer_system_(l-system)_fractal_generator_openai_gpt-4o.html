@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive L-System Fractal Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        header {
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+        }
+        main {
+            display: flex;
+            flex-direction: row;
+            padding: 1rem;
+            width: 100%;
+            max-width: 1200px;
+            margin: auto;
+        }
+        #controls, #canvas-container {
+            padding: 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            margin: 1rem;
+            border-radius: 8px;
+        }
+        #controls {
+            flex: 1;
+            max-width: 300px;
+        }
+        #canvas-container {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            padding: 0.5rem 1rem;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Interactive L-System Fractal Generator</h1>
+    </header>
+    <main>
+        <div id="controls">
+            <div class="form-group">
+                <label for="axiom">Axiom:</label>
+                <input type="text" id="axiom" value="F">
+            </div>
+            <div class="form-group">
+                <label for="rules">Rules (JSON format):</label>
+                <textarea id="rules" rows="5">{"F": "F+F-F-F+F"}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="iterations">Iterations:</label>
+                <input type="number" id="iterations" value="4" min="1" max="10">
+            </div>
+            <div class="form-group">
+                <label for="angle">Angle (degrees):</label>
+                <input type="number" id="angle" value="90" min="0" max="360">
+            </div>
+            <div class="form-group">
+                <button onclick="generateLSystem()">Generate</button>
+            </div>
+        </div>
+        <div id="canvas-container">
+            <canvas id="fractalCanvas" width="800" height="800"></canvas>
+        </div>
+    </main>
+    <script>
+        function generateLSystem() {
+            const axiom = document.getElementById('axiom').value;
+            const rules = JSON.parse(document.getElementById('rules').value);
+            const iterations = parseInt(document.getElementById('iterations').value, 10);
+            const angle = parseInt(document.getElementById('angle').value, 10) * Math.PI / 180;
+            
+            let currentString = axiom;
+            for (let i = 0; i < iterations; i++) {
+                let newString = '';
+                for (let char of currentString) {
+                    newString += rules[char] || char;
+                }
+                currentString = newString;
+            }
+            
+            drawLSystem(currentString, angle);
+        }
+
+        function drawLSystem(lString, angle) {
+            const canvas = document.getElementById('fractalCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const stack = [];
+            const startX = canvas.width / 2;
+            const startY = canvas.height / 2;
+            let x = startX;
+            let y = startY;
+            let currentAngle = -Math.PI / 2;
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+
+            for (let char of lString) {
+                switch (char) {
+                    case 'F':
+                        x += Math.cos(currentAngle) * 5;
+                        y += Math.sin(currentAngle) * 5;
+                        ctx.lineTo(x, y);
+                        break;
+                    case '+':
+                        currentAngle += angle;
+                        break;
+                    case '-':
+                        currentAngle -= angle;
+                        break;
+                    case '[':
+                        stack.push({ x, y, currentAngle });
+                        break;
+                    case ']':
+                        const state = stack.pop();
+                        x = state.x;
+                        y = state.y;
+                        currentAngle = state.currentAngle;
+                        ctx.moveTo(x, y);
+                        break;
+                }
+            }
+
+            ctx.stroke();
+        }
+
+        // Initial rendering
+        generateLSystem();
+    </script>
+</body>
+</html>

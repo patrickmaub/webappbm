@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>3D Graphing Calculator</title>
+<meta charset="utf-8">
+<style>
+body { margin: 0; overflow: hidden; }
+canvas { width: 100%; height: 100%; }
+#ui { position: absolute; top: 10px; left: 10px; }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <label for="equation">Equation (z = f(x, y)):</label>
+  <input type="text" id="equation" value="sin(x*y)"><br><br>
+
+  <label for="xMin">x Min:</label>
+  <input type="number" id="xMin" value="-5"><br>
+  <label for="xMax">x Max:</label>
+  <input type="number" id="xMax" value="5"><br><br>
+
+  <label for="yMin">y Min:</label>
+  <input type="number" id="yMin" value="-5"><br>
+  <label for="yMax">y Max:</label>
+  <input type="number" id="yMax" value="5"><br><br>
+
+  <label for="resolution">Resolution:</label>
+  <input type="number" id="resolution" value="50"><br><br>
+
+  <button onclick="updateGraph()">Update Graph</button>
+</div>
+
+<canvas id="graphCanvas"></canvas>
+
+<script type="module">
+import * as THREE from 'https://cdn.skypack.dev/three@0.137.5';
+import { OrbitControls } from 'https://cdn.skypack.dev/three@0.137.5/examples/jsm/controls/OrbitControls.js';
+
+const canvas = document.getElementById('graphCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas });
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const controls = new OrbitControls(camera, renderer.domElement);
+
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(1, 1, 1);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+camera.position.z = 10;
+
+let graphMesh;
+
+function updateGraph() {
+  const equation = document.getElementById('equation').value;
+  const xMin = parseFloat(document.getElementById('xMin').value);
+  const xMax = parseFloat(document.getElementById('xMax').value);
+  const yMin = parseFloat(document.getElementById('yMin').value);
+  const yMax = parseFloat(document.getElementById('yMax').value);
+  const resolution = parseInt(document.getElementById('resolution').value);
+
+  if (graphMesh) {
+    scene.remove(graphMesh);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  const positions = [];
+  const colors = [];
+
+  for (let i = 0; i <= resolution; i++) {
+    for (let j = 0; j <= resolution; j++) {
+      const x = xMin + (xMax - xMin) * i / resolution;
+      const y = yMin + (yMax - yMin) * j / resolution;
+      let z;
+      try {
+        z = eval(equation.replace(/x/g, x).replace(/y/g, y));
+      } catch (error) {
+        alert("Invalid equation!");
+        return;
+      }
+      positions.push(x, z, y); 
+
+      const color = new THREE.Color();
+      color.setHSL((z - Math.min(z)) / (Math.max(z) - Math.min(z)), 1, 0.5);
+      colors.push(color.r, color.g, color.b);
+    }
+  }
+
+  const indices = [];
+  for (let i = 0; i < resolution; i++) {
+    for (let j = 0; j < resolution; j++) {
+      const a = i * (resolution + 1) + j;
+      const b = a + 1;
+      const c = (i + 1) * (resolution + 1) + j + 1;
+      const d = c - 1;
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices);
+
+  const material = new THREE.MeshPhongMaterial({ 
+    vertexColors: true,
+    side: THREE.DoubleSide 
+  });
+
+  graphMesh = new THREE.Mesh(geometry, material);
+  scene.add(graphMesh);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+window.addEventListener('resize', onWindowResize, false);
+
+updateGraph();
+animate();
+
+</script>
+
+</body>
+</html>

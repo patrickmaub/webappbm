@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>L-System Fractal Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    #canvas {
+      border: 1px solid #ccc;
+    }
+    #controls {
+      margin-top: 20px;
+    }
+    #controls label {
+      display: block;
+      margin-bottom: 10px;
+    }
+    #controls input[type="text"] {
+      width: 100%;
+      height: 30px;
+      font-size: 18px;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    #controls button {
+      width: 100%;
+      height: 40px;
+      font-size: 18px;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #controls button:hover {
+      background-color: #3e8e41;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <div id="controls">
+    <label for="axiom">Axiom:</label>
+    <input type="text" id="axiom" value="F">
+    <label for="rules">Rules:</label>
+    <input type="text" id="rules" value="F -> F[+F]F[-F]F">
+    <label for="iterations">Iterations:</label>
+    <input type="number" id="iterations" value="5">
+    <label for="angle">Angle:</label>
+    <input type="number" id="angle" value="25">
+    <button id="generate">Generate</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const axiomInput = document.getElementById('axiom');
+    const rulesInput = document.getElementById('rules');
+    const iterationsInput = document.getElementById('iterations');
+    const angleInput = document.getElementById('angle');
+    const generateButton = document.getElementById('generate');
+
+    let axiom = axiomInput.value;
+    let rules = parseRules(rulesInput.value);
+    let iterations = parseInt(iterationsInput.value);
+    let angle = parseInt(angleInput.value);
+
+    generateButton.addEventListener('click', generateFractal);
+
+    function parseRules(rulesString) {
+      const rules = {};
+      const rulesArray = rulesString.split(',');
+      rulesArray.forEach(rule => {
+        const [from, to] = rule.trim().split('->');
+        rules[from.trim()] = to.trim();
+      });
+      return rules;
+    }
+
+    function generateFractal() {
+      axiom = axiomInput.value;
+      rules = parseRules(rulesInput.value);
+      iterations = parseInt(iterationsInput.value);
+      angle = parseInt(angleInput.value);
+
+      const sentence = generateSentence(axiom, rules, iterations);
+      drawFractal(sentence, angle);
+    }
+
+    function generateSentence(axiom, rules, iterations) {
+      let sentence = axiom;
+      for (let i = 0; i < iterations; i++) {
+        sentence = applyRules(sentence, rules);
+      }
+      return sentence;
+    }
+
+    function applyRules(sentence, rules) {
+      let newSentence = '';
+      for (let i = 0; i < sentence.length; i++) {
+        const char = sentence[i];
+        if (char in rules) {
+          newSentence += rules[char];
+        } else {
+          newSentence += char;
+        }
+      }
+      return newSentence;
+    }
+
+    function drawFractal(sentence, angle) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height / 2);
+      for (let i = 0; i < sentence.length; i++) {
+        const char = sentence[i];
+        switch (char) {
+          case 'F':
+            ctx.lineTo(ctx.x + Math.cos(ctx.angle) * 10, ctx.y + Math.sin(ctx.angle) * 10);
+            break;
+          case '+':
+            ctx.angle += angle * Math.PI / 180;
+            break;
+          case '-':
+            ctx.angle -= angle * Math.PI / 180;
+            break;
+          case '[':
+            ctx.save();
+            break;
+          case ']':
+            ctx.restore();
+            break;
+        }
+      }
+      ctx.stroke();
+    }
+  </script>
+</body>
+</html>
+```
+This application allows the user to input an axiom, rules, iterations, and angle, and then generates a fractal based on the input parameters. The fractal is drawn on a canvas element using the 2D drawing context.
+
+The application uses a simple parsing function to parse the rules input string into an object, and a recursive function to generate the sentence based on the axiom, rules, and iterations.
+
+The `drawFractal` function uses the canvas 2D drawing context to draw the fractal based on the generated sentence and angle. It uses a simple switch statement to determine what action to take for each character in the sentence.
+
+Note that this is a basic implementation, and there are many ways to optimize and improve it. Additionally, this implementation only supports a limited set of L-System rules and does not handle errors or invalid input.

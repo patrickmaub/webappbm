@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realistic Fluid Dynamics Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #simulator {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 1px solid #ccc;
+            margin: 20px auto;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        #controls label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        #controls input[type="range"] {
+            width: 100%;
+        }
+        #stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="simulator">
+        <canvas id="canvas" width="800" height="600"></canvas>
+        <div id="controls">
+            <label>Viscosity: <input type="range" id="viscosity" min="0" max="1" step="0.01" value="0.5"></label>
+            <label>Density: <input type="range" id="density" min="0" max="1" step="0.01" value="0.5"></label>
+            <label>Gravity: <input type="range" id="gravity" min="0" max="1" step="0.01" value="0.5"></label>
+            <button id="reset">Reset</button>
+        </div>
+        <div id="stats">
+            <p>Particles: <span id="particle-count">0</span></p>
+            <p>Simulation Speed: <span id="simulation-speed">0</span> ms</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const controls = document.getElementById('controls');
+        const stats = document.getElementById('stats');
+        const particleCountElement = document.getElementById('particle-count');
+        const simulationSpeedElement = document.getElementById('simulation-speed');
+        const viscosityInput = document.getElementById('viscosity');
+        const densityInput = document.getElementById('density');
+        const gravityInput = document.getElementById('gravity');
+        const resetButton = document.getElementById('reset');
+
+        let particles = [];
+        let simulationSpeed = 0;
+        let lastUpdateTime = 0;
+        let viscosity = 0.5;
+        let density = 0.5;
+        let gravity = 0.5;
+
+        function init() {
+            for (let i = 0; i < 1000; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: Math.random() * 2 - 1,
+                    vy: Math.random() * 2 - 1,
+                    radius: Math.random() * 5 + 1,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`
+                });
+            }
+            lastUpdateTime = performance.now();
+            update();
+        }
+
+        function update() {
+            const now = performance.now();
+            const deltaTime = now - lastUpdateTime;
+            lastUpdateTime = now;
+
+            simulationSpeed = deltaTime;
+            simulationSpeedElement.textContent = `${simulationSpeed.toFixed(2)} ms`;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < particles.length; i++) {
+                const particle = particles[i];
+
+                particle.x += particle.vx * deltaTime * 0.01;
+                particle.y += particle.vy * deltaTime * 0.01;
+
+                particle.vx += (Math.random() * 2 - 1) * viscosity * deltaTime * 0.01;
+                particle.vy += (Math.random() * 2 - 1) * viscosity * deltaTime * 0

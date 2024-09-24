@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realistic Fluid Dynamics Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #canvas {
+            border: 1px solid #000;
+            margin-top: 20px;
+        }
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        .control-group {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            margin-right: 10px;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Realistic Fluid Dynamics Simulator</h1>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="controls">
+        <div class="control-group">
+            <label for="viscosity">Viscosity:</label>
+            <input type="range" id="viscosity" min="0" max="1" step="0.01" value="0.1">
+            <span id="viscosity-value">0.1</span>
+        </div>
+        <div class="control-group">
+            <label for="diffusion">Diffusion:</label>
+            <input type="range" id="diffusion" min="0" max="1" step="0.01" value="0.1">
+            <span id="diffusion-value">0.1</span>
+        </div>
+        <div class="control-group">
+            <label for="velocity">Velocity:</label>
+            <input type="range" id="velocity" min="0" max="100" step="1" value="50">
+            <span id="velocity-value">50</span>
+        </div>
+        <div class="control-group">
+            <button id="reset">Reset Simulation</button>
+            <button id="toggle-obstacle">Toggle Obstacle</button>
+        </div>
+    </div>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        attribute vec2 a_texCoord;
+        varying vec2 v_texCoord;
+        void main() {
+            gl_Position = vec4(a_position, 0, 1);
+            v_texCoord = a_texCoord;
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D u_texture;
+        varying vec2 v_texCoord;
+        void main() {
+            vec4 color = texture2D(u_texture, v_texCoord);
+            gl_FragColor = vec4(color.rgb, 1.0);
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            alert('WebGL not supported');
+            throw new Error('WebGL not supported');
+        }
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const N = 128;
+        const iter = 16;
+        const scale = 4;
+        const dt = 0.1;
+
+        let viscosity = 0.1;
+        let diffusion = 0.1;
+        let force = 5000;
+        let source = 100;
+
+        let fluid;
+        let obstacle;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        function createProgram(gl, vertexShader, fragmentShader) {
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(program));
+                return null;
+            }
+            return program;
+        }
+
+        const vertexShaderSource = document.getElementById('vertexShader').textContent;
+        const fragmentShaderSource = document.getElementById('fragmentShader').textContent;
+
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+        const program = createProgram(gl, vertexShader, fragmentShader);
+
+        gl.useProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        const positions = [
+            -1, -1,
+            1, -1,
+            -1, 1,
+            1, 1,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+        const texCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+        const texCoords = [
+            0, 0,
+            1, 0,
+            0, 1,
+            1, 1,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, 'a_position');
+        gl.enableVertexAttribArray(positionLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        const texCoordLocation = gl.getAttribLocation(program, 'a_texCoord');
+        gl.enableVertexAttribArray(texCoordLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+        gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        function IX(x, y) {
+            return x + y * N;
+        }
+
+        function SWAP(x0, x) {
+            let tmp = x0;
+            x0 = x;
+            x = tmp;
+        }
+
+        function addSource(N, x, s, dt) {
+            for (let i = 0; i < N * N; i++) {
+                x[i] += dt * s[i];
+            }
+        }
+
+        function setBnd(N, b, x) {
+            for (let i = 1; i < N - 1; i++) {
+                x[IX(i, 0)] = b == 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
+                x[IX(i, N-1)] = b == 2 ? -x[IX(i, N-2)] : x[IX(i, N-2)];
+            }
+            for (let j = 1; j < N - 1; j++) {
+                x[IX(0, j)] = b == 1 ? -x[IX(1, j)] : x[IX(1, j)];
+                x[IX(N-1, j)] = b == 1 ? -x[IX(N-2, j)] : x[IX(N-2, j)];
+            }
+            x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
+            x[IX(0, N-1)] = 0.5 * (x[IX(1, N-1)] + x[IX(0, N-2)]);
+            x[IX(N-1, 0)] = 0.5 * (x[IX(N-2, 0)] + x[IX(N-1, 1)]);
+            x[IX(N-1, N-1)] = 0.5 * (x[IX(N-2, N-1)] + x[IX(N-1, N-2)]);
+        }
+
+        function linSolve(N, b, x, x0, a, c) {
+            for (let k = 0; k < iter; k++) {
+                for (let j = 1; j < N - 1; j++) {
+                    for (let i = 1; i < N - 1; i++) {
+                        x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i-1, j)] + x[IX(i+1, j)] + x[IX(i, j-1)] + x[IX(i, j+1)])) / c;
+                    }
+                }
+                setBnd(N, b, x);
+            }
+        }
+
+        function diffuse(N, b, x, x0, diff, dt) {
+            let a = dt * diff * (N - 2) * (N - 2);
+            linSolve(N, b, x, x0, a, 1 + 4 * a);
+        }
+
+        function advect(N, b, d, d0, u, v, dt) {
+            let dt0 = dt * N;
+            for (let j = 1; j < N - 1; j++) {
+                for (let i = 1; i < N - 1; i++) {
+                    let x = i - dt0 * u[IX(i, j)];
+                    let y = j - dt0 * v[IX(i, j)];
+                    if (x < 0.5) x = 0.5;
+                    if (x > N + 0.5) x = N + 0.5;
+                    let i0 = Math.floor(x);
+                    let i1 = i0 + 1;
+                    if (y < 0.5) y = 0.5;
+                    if (y > N + 0.5) y = N + 0.5;
+                    let j0 = Math.floor(y);
+                    let j1 = j0 + 1;
+                    let s1 = x - i0;
+                    let s0 = 1 - s1;
+                    let t1 = y - j0;
+                    let t0 = 1 - t1;
+                    d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
+                                  s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
+                }
+            }
+            setBnd(N, b, d);
+        }
+
+        function project(N, u, v, p, div) {
+            for (let j = 1; j < N - 1; j++) {
+                for (let i = 1; i < N - 1; i++) {
+                    div[IX(i, j)] = -0.5 * (u[IX(i+1, j)] - u[IX(i-1, j)] + v[IX(i, j+1)] - v[IX(i, j-1)]) / N;
+                    p[IX(i, j)] = 0;
+                }
+            }
+            setBnd(N, 0, div);
+            setBnd(N, 0, p);
+
+            linSolve(N, 0, p, div, 1, 4);
+
+            for (let j = 1; j < N - 1; j++) {
+                for (let i = 1; i < N - 1; i++) {
+                    u[IX(i, j)] -= 0.5 * N * (p[IX(i+1, j)] - p[IX(i-1, j)]);
+                    v[IX(i, j)] -= 0.5 * N * (p[IX(i, j+1)] - p[IX(i, j-1)]);
+                }
+            }
+            setBnd(N, 1, u);
+            setBnd(N, 2, v);
+        }
+
+        function densStep(N, x, x0, u, v, diff, dt) {
+            addSource(N, x, x0, dt);
+            SWAP(x0, x);
+            diffuse(N, 0, x, x0, diff, dt);
+            SWAP(x0, x);
+            advect(N, 0, x, x0, u, v, dt);
+        }
+
+        function velStep(N, u, v, u0, v0, visc, dt) {
+            addSource(N, u, u0, dt);
+            addSource(N, v, v0, dt);
+            SWAP(u0, u);
+            diffuse(N, 1, u, u0, visc, dt);
+            SWAP(v0, v);
+            diffuse(N, 2, v, v0, visc, dt);
+            project(N, u, v, u0, v0);
+            SWAP(u0, u);
+            SWAP(v0, v);
+            advect(N, 1, u, u0, u0, v0, dt);
+            advect(N, 2, v, v0, u0, v0, dt);
+            project(N, u, v, u0, v0);
+        }
+
+        function Fluid(dt, diffusion, viscosity) {
+            this.size = N;
+            this.dt = dt;
+            this.diff = diffusion;
+            this.visc = viscosity;
+
+            this.s = new Array(N * N).fill(0);
+            this.density = new Array(N * N).fill(0);
+
+            this.Vx = new Array(N * N).fill(0);
+            this.Vy = new Array(N * N).fill(0);
+
+            this.Vx0 = new Array(N * N).fill(0);
+            this.Vy0 = new Array(N * N).fill(0);
+
+            this.addDensity = function(x, y, amount) {
+                this.density[IX(x, y)] += amount;
+            }
+
+            this.addVelocity = function(x, y, amountX, amountY) {
+                let index = IX(x, y);
+                this.Vx[index] += amountX;
+                this.Vy[index] += amountY;
+            }
+
+            this.step = function() {
+                velStep(N, this.Vx, this.Vy, this.Vx0, this.Vy0, this.visc, this.dt);
+                densStep(N, this.density, this.s, this.Vx, this.Vy, this.diff, this.dt);
+            }
+        }
+
+        function initFluid() {
+            fluid = new Fluid(dt, diffusion, viscosity);
+            obstacle = new Array(N * N).fill(0);
+        }
+
+        function updateObstacle(x, y) {
+            const radius = 5;
+            for (let j = -radius; j <= radius; j++) {
+                for (let i = -radius; i <= radius; i++) {
+                    if (i * i + j * j <= radius * radius) {
+                        const ix = x + i;
+                        const iy = y + j;
+                        if (ix >= 0 && ix < N && iy >= 0 && iy < N) {
+                            obstacle[IX(ix, iy)] = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        function applyObstacle() {
+            for (let i = 0; i < N * N; i++) {
+                if (obstacle[i]) {
+                    fluid.density[i] = 0;
+                    fluid.Vx[i] = 0;
+                    fluid.Vy[i] = 0;
+                }
+            }
+        }
+
+        function render() {
+            const pixels = new Uint8Array(4 * N * N);
+
+            for (let i = 0; i < N; i++) {
+                for (let j = 0; j < N; j++) {
+                    const x = i;
+                    const y = j;
+                    const d = fluid.density[IX(x, y)];
+                    const obstacle_val = obstacle[IX(x, y)];
+                    
+                    const r = Math.min(255, d * 255);
+                    const g = Math.min(255, d * 128);
+                    const b = Math.min(255, d * 64);
+
+                    const pixelIndex = 4 * (y * N + x);
+                    pixels[pixelIndex] = obstacle_val ? 255 : r;
+                    pixels[pixelIndex + 1] = obstacle_val ? 0 : g;
+                    pixels[pixelIndex + 2] = obstacle_val ? 0 : b;
+                    pixels[pixelIndex + 3] = 255;
+                }
+            }
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+
+        function simulate() {
+            fluid.addDensity(Math.floor(N/2), Math.floor(N/2), source);
+            fluid.addVelocity(Math.floor(N/2), Math.floor(N/2), 0, force);
+
+            applyObstacle();
+            fluid.step();
+            render();
+
+            requestAnimationFrame(simulate);
+        }
+
+        initFluid();
+        simulate();
+
+        // Event Listeners
+        canvas.addEventListener('mousemove', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const x = Math.floor((event.clientX - rect.left) * scaleX / scale);
+            const y = Math.floor((event.clientY - rect.top) * scaleY / scale);
+
+            if (x >= 0 && x < N && y >= 0 && y < N) {
+                fluid.addDensity(x, y, source);
+                fluid.addVelocity(x, y, (event.movementX * scaleX) / scale, (event.movementY * scaleY) / scale);
+            }
+        });
+
+        document.getElementById('viscosity').addEventListener('input', (event) => {
+            viscosity = parseFloat(event.target.value);
+            fluid.visc = viscosity;
+            document.getElementById('viscosity-value').textContent = viscosity.toFixed(2);
+        });
+
+        document.getElementById('diffusion').addEventListener('input', (event) => {
+            diffusion = parseFloat(event.target.value);
+            fluid.diff = diffusion;
+            document.getElementById('diffusion-value').textContent = diffusion.toFixed(2);
+        });
+
+        document.getElementById('velocity').addEventListener('input', (event) => {
+            force = parseFloat(event.target.value) * 100;
+            document.getElementById('velocity-value').textContent = event.target.value;
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            initFluid();
+        });
+
+        let obstacleMode = false;
+        document.getElementById('toggle-obstacle').addEventListener('click', () => {
+            obstacleMode = !obstacleMode;
+            canvas.style.cursor = obstacleMode ? 'crosshair' : 'default';
+        });
+
+        canvas.addEventListener('click', (event) => {
+            if (obstacleMode) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                const x = Math.floor((event.clientX - rect.left) * scaleX / scale);
+                const y = Math.floor((event.clientY - rect.top) * scaleY / scale);
+
+                if (x >= 0 && x < N && y >= 0 && y < N) {
+                    updateObstacle(x, y);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

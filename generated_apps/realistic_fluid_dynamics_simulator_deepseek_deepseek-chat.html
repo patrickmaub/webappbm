@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realistic Fluid Dynamics Simulator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #2c3e50;
+            color: #ecf0f1;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 2px solid #3498db;
+            background: #34495e;
+            border-radius: 10px;
+            display: block;
+            margin: 20px auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            width: 80%;
+            margin-top: 20px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background: #3498db;
+            color: #ecf0f1;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .controls button:hover {
+            background: #2980b9;
+        }
+        .info {
+            margin-top: 20px;
+            font-size: 18px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Realistic Fluid Dynamics Simulator</h1>
+    <canvas id="fluidCanvas" width="800" height="600"></canvas>
+    <div class="controls">
+        <button id="startButton">Start Simulation</button>
+        <button id="stopButton">Stop Simulation</button>
+        <button id="resetButton">Reset Simulation</button>
+    </div>
+    <div class="info">
+        <p>This simulator uses a modified Smoothed Particle Hydrodynamics (SPH) algorithm to simulate fluid dynamics.</p>
+        <p>Click and drag on the canvas to interact with the fluid.</p>
+    </div>
+
+    <script>
+        // Constants
+        const G = 9.81; // Gravitational constant
+        const REST_DENSITY = 1000; // Rest density of water
+        const GAS_CONST = 2000; // Gas constant
+        const H = 16; // Smoothing radius
+        const MASS = 65; // Particle mass
+        const VISC = 250; // Viscosity constant
+        const DT = 0.0008; // Time step
+        const SCREEN_WIDTH = 800;
+        const SCREEN_HEIGHT = 600;
+        const BOUND_DAMPING = -0.5;
+
+        // Particle class
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.rho = 0;
+                this.p = 0;
+            }
+        }
+
+        // Initialize particles
+        let particles = [];
+        const particleCount = 200;
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle(Math.random() * SCREEN_WIDTH, Math.random() * SCREEN_HEIGHT));
+        }
+
+        // Kernel functions
+        function kernel(r, h) {
+            const q = r / h;
+            if (q > 1) return 0;
+            return (315 / (64 * Math.PI * Math.pow(h, 9))) * Math.pow(1 - q, 3);
+        }
+
+        function gradKernel(r, h) {
+            const q = r / h;
+            if (q > 1) return 0;
+            return -(945 / (32 * Math.PI * Math.pow(h, 9))) * Math.pow(1 - q, 2);
+        }
+
+        // Main simulation loop
+        function simulate() {
+            particles.forEach(p => {
+                // Reset density and pressure
+                p.rho = 0;
+                p.p = 0;
+
+                // Compute density and pressure
+                particles.forEach(other => {
+                    const dx = other.x - p.x;
+                    const dy = other.y - p.y;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    if (r < H) {
+                        p.rho += MASS * kernel(r, H);
+                    }
+                });
+                p.p = GAS_CONST * (p.rho - REST_DENSITY);
+
+                // Compute forces
+                let fx = 0;
+                let fy = 0;
+                particles.forEach(other => {
+                    if (p === other) return;
+                    const dx = other.x - p.x;
+                    const dy = other.y - p.y;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    if (r < H) {
+                        const f = (other.p / (other.rho * other.rho) + p.p / (p.rho * p.rho)) * gradKernel(r, H);
+                        fx += f * dx;
+                        fy += f * dy;
+                    }
+                });
+
+                // Add viscosity force
+                particles.forEach(other => {
+                    if (p === other) return;
+                    const dx = other.x - p.x;
+                    const dy = other.y - p.y;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    if (r < H) {
+                        const f = VISC * (other.vx - p.vx) / (other.rho * p.rho) * kernel(r, H);
+                        fx += f * dx;
+                        fy += f * dy;
+                    }
+                });
+
+                // Update velocity and position
+                p.vx += DT * fx / p.rho;
+                p.vy += DT * (fy / p.rho + G);
+                p.x += DT * p.vx;
+                p.y += DT * p.vy;
+
+                // Boundary conditions
+                if (p.x - H < 0) {
+                    p.vx *= BOUND_DAMPING;
+                    p.x = H;
+                }
+                if (p.x + H > SCREEN_WIDTH) {
+                    p.vx *= BOUND_DAMPING;
+                    p.x = SCREEN_WIDTH - H;
+                }
+                if (p.y - H < 0) {
+                    p.vy *= BOUND_DAMPING;
+                    p.y = H;
+                }
+                if (p.y + H > SCREEN_HEIGHT) {
+                    p.vy *= BOUND_DAMPING;
+                    p.y = SCREEN_HEIGHT - H;
+                }
+            });
+        }
+
+        // Render particles
+        function render(ctx) {
+            ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(52, 152, 219, 0.8)';
+                ctx.fill();
+                ctx.closePath();
+            });
+        }
+
+        // Main loop
+        let animationId = null;
+        function mainLoop() {
+            simulate();
+            render(ctx);
+            animationId = requestAnimationFrame(mainLoop);
+        }
+
+        // Event listeners
+        const canvas = document.getElementById('fluidCanvas');
+        const ctx = canvas.getContext('2d');
+        let isSimulationRunning = false;
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            if (!isSimulationRunning) {
+                isSimulationRunning = true;
+                mainLoop();
+            }
+        });
+
+        document.getElementById('stopButton').addEventListener('click', () => {
+            if (isSimulationRunning) {
+                isSimulationRunning = false;
+                cancelAnimationFrame(animationId);
+            }
+        });
+
+        document.getElementById('resetButton').addEventListener('click', () => {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(Math.random() * SCREEN_WIDTH, Math.random() * SCREEN_HEIGHT));
+            }
+            if (isSimulationRunning) {
+                cancelAnimationFrame(animationId);
+                mainLoop();
+            }
+        });
+
+        // Interaction
+        let isDragging = false;
+        let dragStartX, dragStartY;
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                particles.forEach(p => {
+                    const dist = Math.sqrt((p.x - dragStartX) ** 2 + (p.y - dragStartY) ** 2);
+                    if (dist < 50) {
+                        p.vx += dx * 0.01;
+                        p.vy += dy * 0.01;
+                    }
+                });
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+    </script>
+</body>
+</html>

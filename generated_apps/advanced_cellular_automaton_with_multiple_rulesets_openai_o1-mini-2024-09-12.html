@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Cellular Automaton</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #controls {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #controls > * {
+            margin: 5px;
+        }
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background-color: #34495e;
+        }
+        canvas {
+            background-color: #ffffff;
+            display: block;
+        }
+        select, input[type="number"], input[type="color"] {
+            padding: 5px;
+            border: none;
+            border-radius: 3px;
+        }
+        button {
+            padding: 5px 10px;
+            border: none;
+            background-color: #2980b9;
+            color: #ecf0f1;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3498db;
+        }
+        #status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(44, 62, 80, 0.8);
+            color: #ecf0f1;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        #patternModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(44, 62, 80, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #patternModal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        #patternModalContent {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            width: 80%;
+            max-width: 500px;
+        }
+        #patternModalContent h2 {
+            margin-top: 0;
+        }
+        #patternModalContent textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 10px;
+            resize: none;
+            padding: 10px;
+            font-family: monospace;
+        }
+        #patternModalContent button {
+            margin-right: 10px;
+        }
+        @media (max-width: 600px) {
+            #controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="startBtn">Start</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <button id="stepBtn">Step</button>
+        <button id="resetBtn">Reset</button>
+        <label>Speed:
+            <input type="range" id="speedRange" min="1" max="60" value="10">
+        </label>
+        <label>Grid Size:
+            <input type="number" id="gridSize" min="10" max="500" value="50">
+        </label>
+        <label>Ruleset:
+            <select id="rulesetSelect">
+                <option value="Game of Life">Game of Life</option>
+                <option value="Brian's Brain">Brian's Brain</option>
+                <option value="Highlife">Highlife</option>
+                <option value="Custom">Custom</option>
+            </select>
+        </label>
+        <label>Grid Lines:
+            <input type="checkbox" id="toggleGrid" checked>
+        </label>
+        <button id="savePattern">Save Pattern</button>
+        <button id="loadPattern">Load Pattern</button>
+        <label>Color 1:
+            <input type="color" id="color1" value="#000000">
+        </label>
+        <label>Color 2:
+            <input type="color" id="color2" value="#FFFFFF">
+        </label>
+    </div>
+    <div id="canvas-container">
+        <canvas id="caCanvas"></canvas>
+        <div id="status">Stopped</div>
+    </div>
+
+    <div id="patternModal">
+        <div id="patternModalContent">
+            <h2>Save/Load Pattern</h2>
+            <textarea id="patternText" placeholder="Enter pattern JSON here..."></textarea>
+            <div style="text-align: right;">
+                <button id="closeModal">Close</button>
+                <button id="applyPattern">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            const canvas = document.getElementById('caCanvas');
+            const ctx = canvas.getContext('2d');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const stepBtn = document.getElementById('stepBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const speedRange = document.getElementById('speedRange');
+            const gridSizeInput = document.getElementById('gridSize');
+            const rulesetSelect = document.getElementById('rulesetSelect');
+            const toggleGrid = document.getElementById('toggleGrid');
+            const savePatternBtn = document.getElementById('savePattern');
+            const loadPatternBtn = document.getElementById('loadPattern');
+            const patternModal = document.getElementById('patternModal');
+            const patternText = document.getElementById('patternText');
+            const closeModalBtn = document.getElementById('closeModal');
+            const applyPatternBtn = document.getElementById('applyPattern');
+            const color1Input = document.getElementById('color1');
+            const color2Input = document.getElementById('color2');
+            const statusDiv = document.getElementById('status');
+            let animationId;
+            let running = false;
+
+            let gridSize = parseInt(gridSizeInput.value);
+            let cellSize;
+            let grid = createGrid(gridSize);
+            let nextGrid = createGrid(gridSize);
+            let ruleset = rulesetSelect.value;
+            let rules = getRules(ruleset);
+            let speed = parseInt(speedRange.value);
+            let showGrid = toggleGrid.checked;
+            let colors = [color1Input.value, color2Input.value];
+            let mouseDown = false;
+            let zoom = 1;
+            let offsetX = 0;
+            let offsetY = 0;
+            let isPanning = false;
+            let startPan = {x: 0, y: 0};
+            let customRules = { survive: [2,3], birth: [3] };
+
+            function createGrid(size) {
+                let arr = new Array(size);
+                for (let i = 0; i < size; i++) {
+                    arr[i] = new Array(size).fill(0);
+                }
+                return arr;
+            }
+
+            function getRules(name) {
+                switch(name) {
+                    case 'Game of Life':
+                        return { survive: [2,3], birth: [3] };
+                    case "Brian's Brain":
+                        return { survive: [], birth: [2] };
+                    case "Highlife":
+                        return { survive: [2,3], birth: [3,6] };
+                    case "Custom":
+                        // Example: Custom rules can be entered by user
+                        return customRules;
+                    default:
+                        return { survive: [2,3], birth: [3] };
+                }
+            }
+
+            function resizeCanvas() {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+                cellSize = Math.min(canvas.width, canvas.height) / gridSize * zoom;
+                drawGrid();
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            function drawGrid() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.translate(offsetX, offsetY);
+                ctx.scale(zoom, zoom);
+                for (let i = 0; i < gridSize; i++) {
+                    for (let j = 0; j < gridSize; j++) {
+                        if (grid[i][j] === 1) {
+                            ctx.fillStyle = colors[1];
+                            ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                        } else {
+                            ctx.fillStyle = colors[0];
+                            ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                        }
+                    }
+                }
+                if (showGrid) {
+                    ctx.strokeStyle = '#bdc3c7';
+                    ctx.lineWidth = 0.5 / zoom;
+                    for (let i = 0; i <= gridSize; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, i * cellSize);
+                        ctx.lineTo(gridSize * cellSize, i * cellSize);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(i * cellSize, 0);
+                        ctx.lineTo(i * cellSize, gridSize * cellSize);
+                        ctx.stroke();
+                    }
+                }
+                ctx.restore();
+            }
+
+            function updateGrid() {
+                for (let i = 0; i < gridSize; i++) {
+                    for (let j = 0; j < gridSize; j++) {
+                        let state = grid[i][j];
+                        let neighbors = countNeighbors(i, j);
+                        if (ruleset === "Brian's Brain") {
+                            if (state === 0 && neighbors === 2) {
+                                nextGrid[i][j] = 1;
+                            } else if (state === 1) {
+                                nextGrid[i][j] = 2;
+                            } else if (state === 2) {
+                                nextGrid[i][j] = 0;
+                            } else {
+                                nextGrid[i][j] = grid[i][j];
+                            }
+                        } else {
+                            if (state === 1) {
+                                if (rules.survive.includes(neighbors)) {
+                                    nextGrid[i][j] = 1;
+                                } else {
+                                    nextGrid[i][j] = 0;
+                                }
+                            } else {
+                                if (rules.birth.includes(neighbors)) {
+                                    nextGrid[i][j] = 1;
+                                } else {
+                                    nextGrid[i][j] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+                // Swap grids
+                [grid, nextGrid] = [nextGrid, grid];
+                drawGrid();
+            }
+
+            function countNeighbors(x, y) {
+                let count = 0;
+                for (let i = -1; i <=1; i++) {
+                    for (let j = -1; j <=1; j++) {
+                        if (i ===0 && j===0) continue;
+                        let ni = (x + i + gridSize) % gridSize;
+                        let nj = (y + j + gridSize) % gridSize;
+                        if (ruleset === "Brian's Brain") {
+                            if (grid[ni][nj] ===1) count++;
+                        } else {
+                            if (grid[ni][nj] ===1) count++;
+                        }
+                    }
+                }
+                return count;
+            }
+
+            function step() {
+                updateGrid();
+            }
+
+            function loop() {
+                if (running) {
+                    step();
+                    animationId = setTimeout(loop, 1000 / speed);
+                }
+            }
+
+            startBtn.addEventListener('click', () => {
+                running = true;
+                loop();
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                statusDiv.textContent = 'Running';
+            });
+
+            stopBtn.addEventListener('click', () => {
+                running = false;
+                clearTimeout(animationId);
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                statusDiv.textContent = 'Stopped';
+            });
+
+            stepBtn.addEventListener('click', () => {
+                step();
+            });
+
+            resetBtn.addEventListener('click', () => {
+                grid = createGrid(gridSize);
+                drawGrid();
+                statusDiv.textContent = 'Reset';
+            });
+
+            speedRange.addEventListener('input', () => {
+                speed = parseInt(speedRange.value);
+            });
+
+            gridSizeInput.addEventListener('change', () => {
+                let newSize = parseInt(gridSizeInput.value);
+                if (newSize >=10 && newSize <=500) {
+                    gridSize = newSize;
+                    grid = createGrid(gridSize);
+                    nextGrid = createGrid(gridSize);
+                    resizeCanvas();
+                    drawGrid();
+                }
+            });
+
+            rulesetSelect.addEventListener('change', () => {
+                ruleset = rulesetSelect.value;
+                rules = getRules(ruleset);
+                if (ruleset !== "Custom") {
+                    grid = createGrid(gridSize);
+                    nextGrid = createGrid(gridSize);
+                    drawGrid();
+                }
+            });
+
+            toggleGrid.addEventListener('change', () => {
+                showGrid = toggleGrid.checked;
+                drawGrid();
+            });
+
+            color1Input.addEventListener('input', () => {
+                colors[0] = color1Input.value;
+                drawGrid();
+            });
+
+            color2Input.addEventListener('input', () => {
+                colors[1] = color2Input.value;
+                drawGrid();
+            });
+
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button ===0) {
+                    mouseDown = true;
+                    paintCell(e);
+                } else if (e.button ===1 || e.button ===2) {
+                    isPanning = true;
+                    startPan = {x: e.clientX - offsetX, y: e.clientY - offsetY};
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (mouseDown) {
+                    paintCell(e);
+                }
+                if (isPanning) {
+                    offsetX = e.clientX - startPan.x;
+                    offsetY = e.clientY - startPan.y;
+                    drawGrid();
+                }
+            });
+
+            canvas.addEventListener('mouseup', (e) => {
+                mouseDown = false;
+                isPanning = false;
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 1.1 : 0.9;
+                zoom *= delta;
+                zoom = Math.min(Math.max(zoom, 0.5), 5);
+                cellSize = Math.min(canvas.width, canvas.height) / gridSize * zoom;
+                drawGrid();
+            });
+
+            function paintCell(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - offsetX) / zoom;
+                const y = (e.clientY - rect.top - offsetY) / zoom;
+                const i = Math.floor(y / cellSize);
+                const j = Math.floor(x / cellSize);
+                if (i >=0 && i < gridSize && j >=0 && j < gridSize) {
+                    grid[i][j] = grid[i][j] ? 0 :1;
+                    drawGrid();
+                }
+            }
+
+            // Prevent context menu on right click
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            savePatternBtn.addEventListener('click', () => {
+                const pattern = {
+                    gridSize,
+                    grid
+                };
+                patternText.value = JSON.stringify(pattern);
+                patternModal.classList.add('active');
+            });
+
+            loadPatternBtn.addEventListener('click', () => {
+                patternModal.classList.add('active');
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                patternModal.classList.remove('active');
+                patternText.value = '';
+            });
+
+            applyPatternBtn.addEventListener('click', () => {
+                try {
+                    const pattern = JSON.parse(patternText.value);
+                    if (pattern.gridSize && pattern.grid) {
+                        gridSize = pattern.gridSize;
+                        gridSizeInput.value = gridSize;
+                        grid = pattern.grid;
+                        nextGrid = createGrid(gridSize);
+                        resizeCanvas();
+                        drawGrid();
+                        patternModal.classList.remove('active');
+                        statusDiv.textContent = 'Pattern Loaded';
+                    } else {
+                        alert('Invalid pattern format.');
+                    }
+                } catch (e) {
+                    alert('Error parsing pattern.');
+                }
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    savePatternBtn.click();
+                }
+                if (e.ctrlKey && e.key === 'l') {
+                    e.preventDefault();
+                    loadPatternBtn.click();
+                }
+            });
+
+            // Initial draw
+            drawGrid();
+        })();
+    </script>
+</body>
+</html>

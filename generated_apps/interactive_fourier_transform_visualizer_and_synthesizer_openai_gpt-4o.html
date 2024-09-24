@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Fourier Transform Visualizer and Synthesizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 1px solid #000;
+            margin-top: 20px;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .control-group input {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Fourier Transform Visualizer and Synthesizer</h1>
+    <canvas id="waveformCanvas" width="800" height="200"></canvas>
+    <canvas id="spectrumCanvas" width="800" height="200"></canvas>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="frequency">Frequency (Hz)</label>
+            <input type="range" id="frequency" min="1" max="100" value="10">
+        </div>
+        <div class="control-group">
+            <label for="amplitude">Amplitude</label>
+            <input type="range" id="amplitude" min="1" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label for="phase">Phase (Degrees)</label>
+            <input type="range" id="phase" min="0" max="360" value="0">
+        </div>
+    </div>
+
+    <script>
+        const waveformCanvas = document.getElementById('waveformCanvas');
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const waveformCtx = waveformCanvas.getContext('2d');
+        const spectrumCtx = spectrumCanvas.getContext('2d');
+        
+        const frequencyInput = document.getElementById('frequency');
+        const amplitudeInput = document.getElementById('amplitude');
+        const phaseInput = document.getElementById('phase');
+        
+        const width = waveformCanvas.width;
+        const height = waveformCanvas.height;
+        
+        function drawWaveform(frequency, amplitude, phase) {
+            waveformCtx.clearRect(0, 0, width, height);
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(0, height / 2);
+            
+            for (let x = 0; x < width; x++) {
+                const t = x / width;
+                const y = height / 2 + amplitude * Math.sin(2 * Math.PI * frequency * t + (phase * Math.PI / 180));
+                waveformCtx.lineTo(x, y);
+            }
+            
+            waveformCtx.stroke();
+        }
+        
+        function drawSpectrum(frequency, amplitude) {
+            spectrumCtx.clearRect(0, 0, width, height);
+            const barWidth = width / 100;
+            
+            for (let i = 0; i < 100; i++) {
+                const barHeight = i === frequency ? amplitude : 0;
+                spectrumCtx.fillStyle = 'rgba(0, 0, 255, 0.5)';
+                spectrumCtx.fillRect(i * barWidth, height - barHeight, barWidth, barHeight);
+            }
+        }
+        
+        function update() {
+            const frequency = parseFloat(frequencyInput.value);
+            const amplitude = parseFloat(amplitudeInput.value);
+            const phase = parseFloat(phaseInput.value);
+            
+            drawWaveform(frequency, amplitude, phase);
+            drawSpectrum(frequency, amplitude);
+        }
+        
+        frequencyInput.addEventListener('input', update);
+        amplitudeInput.addEventListener('input', update);
+        phaseInput.addEventListener('input', update);
+        
+        update();
+    </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex 3D Graphing Calculator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #function-input {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 300px;
+        }
+        #error-message {
+            position: absolute;
+            bottom: 40px;
+            left: 10px;
+            color: red;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px;
+            border-radius: 3px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Complex 3D Graphing Calculator</div>
+    <input type="text" id="function-input" placeholder="Enter a function (e.g., sin(x) * cos(y))">
+    <div id="error-message"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
+
+    <script>
+        let scene, camera, renderer, graph, axesHelper;
+        let gui, params;
+
+        const init = () => {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000);
+            document.body.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 0.5);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
+
+            axesHelper = new THREE.AxesHelper(5);
+            scene.add(axesHelper);
+
+            params = {
+                function: 'sin(x) * cos(y)',
+                xMin: -5,
+                xMax: 5,
+                yMin: -5,
+                yMax: 5,
+                resolution: 100,
+                zScale: 1,
+                wireframe: false,
+                color: '#00ff00',
+                animate: false,
+                animationSpeed: 1,
+            };
+
+            gui = new dat.GUI();
+            gui.add(params, 'xMin', -10, 0).onChange(updateGraph);
+            gui.add(params, 'xMax', 0, 10).onChange(updateGraph);
+            gui.add(params, 'yMin', -10, 0).onChange(updateGraph);
+            gui.add(params, 'yMax', 0, 10).onChange(updateGraph);
+            gui.add(params, 'resolution', 10, 200, 1).onChange(updateGraph);
+            gui.add(params, 'zScale', 0.1, 5).onChange(updateGraph);
+            gui.add(params, 'wireframe').onChange(updateGraph);
+            gui.addColor(params, 'color').onChange(updateGraph);
+            gui.add(params, 'animate');
+            gui.add(params, 'animationSpeed', 0.1, 5);
+
+            document.getElementById('function-input').addEventListener('input', (e) => {
+                params.function = e.target.value;
+                updateGraph();
+            });
+
+            updateGraph();
+            animate();
+        };
+
+        const updateGraph = () => {
+            if (graph) {
+                scene.remove(graph);
+            }
+
+            try {
+                const func = math.compile(params.function);
+                const geometry = new THREE.BufferGeometry();
+                const material = new THREE.MeshPhongMaterial({
+                    color: params.color,
+                    wireframe: params.wireframe,
+                    side: THREE.DoubleSide,
+                });
+
+                const vertices = [];
+                const indices = [];
+
+                const xStep = (params.xMax - params.xMin) / params.resolution;
+                const yStep = (params.yMax - params.yMin) / params.resolution;
+
+                for (let i = 0; i <= params.resolution; i++) {
+                    for (let j = 0; j <= params.resolution; j++) {
+                        const x = params.xMin + i * xStep;
+                        const y = params.yMin + j * yStep;
+                        const z = func.evaluate({ x, y }) * params.zScale;
+                        vertices.push(x, z, y);
+
+                        if (i < params.resolution && j < params.resolution) {
+                            const a = i * (params.resolution + 1) + j;
+                            const b = a + 1;
+                            const c = (i + 1) * (params.resolution + 1) + j;
+                            const d = c + 1;
+                            indices.push(a, b, c);
+                            indices.push(b, d, c);
+                        }
+                    }
+                }
+
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                geometry.setIndex(indices);
+                geometry.computeVertexNormals();
+
+                graph = new THREE.Mesh(geometry, material);
+                scene.add(graph);
+
+                document.getElementById('error-message').style.display = 'none';
+            } catch (error) {
+                document.getElementById('error-message').textContent = `Error: ${error.message}`;
+                document.getElementById('error-message').style.display = 'block';
+            }
+        };
+
+        const animate = () => {
+            requestAnimationFrame(animate);
+
+            if (params.animate) {
+                const time = Date.now() * 0.001 * params.animationSpeed;
+                graph.rotation.x = Math.sin(time * 0.5) * 0.2;
+                graph.rotation.y = Math.cos(time * 0.3) * 0.2;
+            }
+
+            renderer.render(scene, camera);
+        };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
+
+This complex 3D Graphing Calculator web application includes the following features:
+
+1. Interactive 3D visualization of mathematical functions using Three.js
+2. Function parsing and evaluation using math.js
+3. User interface controls with dat.GUI for adjusting various parameters
+4. Real-time updates of the graph when changing parameters or the function
+5. Customizable graph appearance (color, wireframe mode)
+6. Adjustable graph boundaries and resolution
+7. Z-axis scaling
+8. Optional animation of the graph
+9. Axes helper for better orientation
+10. Error handling and display for invalid functions
+11. Responsive design that adapts to window resizing
+
+Users can input complex mathematical functions involving variables x and y, and the application will render a 3D surface representation of the function. The graph updates in real-time as users modify the function or adjust parameters using the GUI controls.
+
+This application demonstrates advanced capabilities in 3D rendering, mathematical computation, and user interface design, all within a single HTML file.

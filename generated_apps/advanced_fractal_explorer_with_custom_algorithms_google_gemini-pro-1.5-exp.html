@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Advanced Fractal Explorer</title>
+<style>
+body { margin: 0; overflow: hidden; }
+canvas { display: block; }
+#controls { position: absolute; top: 10px; left: 10px; background-color: rgba(0, 0, 0, 0.5); padding: 10px; color: white; font-family: sans-serif; }
+</style>
+</head>
+<body>
+
+<canvas id="fractalCanvas"></canvas>
+<div id="controls">
+  <h2>Fractal Explorer</h2>
+  <label for="fractalType">Fractal Type:</label>
+  <select id="fractalType">
+    <option value="mandelbrot">Mandelbrot Set</option>
+    <option value="julia">Julia Set</option>
+    <option value="burningShip">Burning Ship</option>
+    <option value="custom">Custom Algorithm</option>
+  </select>
+  <br>
+  <label for="realOffset">Real Offset:</label>
+  <input type="number" id="realOffset" value="0" step="0.1">
+  <br>
+  <label for="imagOffset">Imaginary Offset:</label>
+  <input type="number" id="imagOffset" value="0" step="0.1">
+  <br>
+  <label for="zoom">Zoom:</label>
+  <input type="number" id="zoom" value="1" step="0.1">
+  <br>
+  <label for="maxIterations">Max Iterations:</label>
+  <input type="number" id="maxIterations" value="100" step="1">
+  <br>
+  <div id="customAlgorithm" style="display: none;">
+    <h2>Custom Algorithm</h2>
+    <textarea id="customFormula" rows="5" cols="50">
+z = c;
+for (let i = 0; i < maxIterations; i++) {
+  z = z * z + c; 
+  if (z.re * z.re + z.im * z.im > 4) {
+    return i;
+  }
+}
+return maxIterations;
+    </textarea>
+  </div>
+  <button id="renderButton">Render</button>
+</div>
+
+<script>
+const canvas = document.getElementById('fractalCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const fractalTypeSelect = document.getElementById('fractalType');
+const realOffsetInput = document.getElementById('realOffset');
+const imagOffsetInput = document.getElementById('imagOffset');
+const zoomInput = document.getElementById('zoom');
+const maxIterationsInput = document.getElementById('maxIterations');
+const customAlgorithmDiv = document.getElementById('customAlgorithm');
+const customFormulaTextarea = document.getElementById('customFormula');
+const renderButton = document.getElementById('renderButton');
+
+let fractalType = 'mandelbrot';
+let realOffset = 0;
+let imagOffset = 0;
+let zoom = 1;
+let maxIterations = 100;
+
+fractalTypeSelect.addEventListener('change', () => {
+  fractalType = fractalTypeSelect.value;
+  customAlgorithmDiv.style.display = fractalType === 'custom' ? 'block' : 'none';
+});
+
+renderButton.addEventListener('click', () => {
+  realOffset = parseFloat(realOffsetInput.value);
+  imagOffset = parseFloat(imagOffsetInput.value);
+  zoom = parseFloat(zoomInput.value);
+  maxIterations = parseInt(maxIterationsInput.value);
+  renderFractal();
+});
+
+function renderFractal() {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  for (let x = 0; x < canvas.width; x++) {
+    for (let y = 0; y < canvas.height; y++) {
+      const c = mapToComplexPlane(x, y);
+      const iterations = calculateIterations(c);
+      const color = getColor(iterations);
+
+      const index = (y * canvas.width + x) * 4;
+      data[index] = color.r;
+      data[index + 1] = color.g;
+      data[index + 2] = color.b;
+      data[index + 3] = 255; 
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function mapToComplexPlane(x, y) {
+  const real = (x - canvas.width / 2) / (canvas.width / 4) * zoom + realOffset;
+  const imag = (y - canvas.height / 2) / (canvas.height / 4) * zoom + imagOffset;
+  return { re: real, im: imag };
+}
+
+function calculateIterations(c) {
+  if (fractalType === 'custom') {
+    return evalCustomFormula(c);
+  }
+
+  switch (fractalType) {
+    case 'mandelbrot':
+      return calculateMandelbrotIterations(c);
+    case 'julia':
+      return calculateJuliaIterations(c);
+    case 'burningShip':
+      return calculateBurningShipIterations(c);
+    default:
+      return 0;
+  }
+}
+
+function calculateMandelbrotIterations(c) {
+  let z = { re: 0, im: 0 };
+  for (let i = 0; i < maxIterations; i++) {
+    z = {
+      re: z.re * z.re - z.im * z.im + c.re,
+      im: 2 * z.re * z.im + c.im
+    };
+    if (z.re * z.re + z.im * z.im > 4) {
+      return i;
+    }
+  }
+  return maxIterations;
+}
+
+function calculateJuliaIterations(c) {
+  let z = c; 
+  const k = { re: -0.8, im: 0.156 }; 
+  for (let i = 0; i < maxIterations; i++) {
+    z = {
+      re: z.re * z.re - z.im * z.im + k.re,
+      im: 2 * z.re * z.im + k.im
+    };
+    if (z.re * z.re + z.im * z.im > 4) {
+      return i;
+    }
+  }
+  return maxIterations;
+}
+
+function calculateBurningShipIterations(c) {
+  let z = { re: 0, im: 0 };
+  for (let i = 0; i < maxIterations; i++) {
+    z = {
+      re: z.re * z.re - z.im * z.im + c.re,
+      im: 2 * Math.abs(z.re * z.im) + c.im
+    };
+    if (z.re * z.re + z.im * z.im > 4) {
+      return i;
+    }
+  }
+  return maxIterations;
+}
+
+function evalCustomFormula(c) {
+  try {
+    const customFunction = new Function('c', 'maxIterations', customFormulaTextarea.value);
+    return customFunction(c, maxIterations);
+  } catch (error) {
+    console.error("Error evaluating custom formula:", error);
+    return 0;
+  }
+}
+
+function getColor(iterations) {
+  if (iterations === maxIterations) {
+    return { r: 0, g: 0, b: 0 }; 
+  }
+
+  const hue = 360 * iterations / maxIterations;
+  const saturation = 1;
+  const lightness = 0.5;
+
+  return hslToRgb(hue, saturation, lightness);
+}
+
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+
+  if (s === 0) {
+    r = g = b = l; 
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+
+  return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+}
+
+renderFractal(); 
+
+</script>
+
+</body>
+</html>

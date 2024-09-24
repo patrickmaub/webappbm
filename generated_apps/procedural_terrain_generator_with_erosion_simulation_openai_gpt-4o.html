@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Terrain Generator with Erosion Simulation</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #202020;
+            color: #fff;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #controls input, #controls button {
+            margin: 5px 0;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3>Terrain Generator</h3>
+        <label for="size">Size:</label>
+        <input type="number" id="size" value="256" min="128" max="1024">
+        <br>
+        <label for="iterations">Iterations:</label>
+        <input type="number" id="iterations" value="10000" min="1000" max="50000">
+        <br>
+        <button id="generate">Generate Terrain</button>
+        <br>
+        <button id="erode">Erode Terrain</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const sizeInput = document.getElementById('size');
+        const iterationsInput = document.getElementById('iterations');
+        const generateButton = document.getElementById('generate');
+        const erodeButton = document.getElementById('erode');
+
+        let size = parseInt(sizeInput.value);
+        let iterations = parseInt(iterationsInput.value);
+        let terrain = [];
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        function generateTerrain(size) {
+            terrain = new Array(size).fill(0).map(() => new Array(size).fill(0));
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    terrain[x][y] = Math.random();
+                }
+            }
+        }
+
+        function applyErosion(iterations) {
+            for (let i = 0; i < iterations; i++) {
+                let x = Math.floor(Math.random() * size);
+                let y = Math.floor(Math.random() * size);
+                let sediment = terrain[x][y] * 0.1;
+                terrain[x][y] -= sediment;
+                if (x > 0) terrain[x - 1][y] += sediment * 0.25;
+                if (x < size - 1) terrain[x + 1][y] += sediment * 0.25;
+                if (y > 0) terrain[x][y - 1] += sediment * 0.25;
+                if (y < size - 1) terrain[x][y + 1] += sediment * 0.25;
+            }
+        }
+
+        function drawTerrain() {
+            const imageData = ctx.createImageData(size, size);
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    const value = Math.floor(terrain[x][y] * 255);
+                    const index = (x + y * size) * 4;
+                    imageData.data[index] = value;
+                    imageData.data[index + 1] = value;
+                    imageData.data[index + 2] = value;
+                    imageData.data[index + 3] = 255;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0, 0, 0, canvas.width, canvas.height);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawTerrain();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        generateButton.addEventListener('click', () => {
+            size = parseInt(sizeInput.value);
+            generateTerrain(size);
+            drawTerrain();
+        });
+
+        erodeButton.addEventListener('click', () => {
+            iterations = parseInt(iterationsInput.value);
+            applyErosion(iterations);
+            drawTerrain();
+        });
+
+        generateTerrain(size);
+        drawTerrain();
+    </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Cellular Automaton with Multiple Rulesets</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #fff;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        select, button {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #fff;
+            background: #444;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="rules">Select Ruleset:</label>
+        <select id="rules">
+            <option value="conway">Conway's Game of Life</option>
+            <option value="maze">Maze</option>
+            <option value="highlife">HighLife</option>
+        </select>
+        <button id="start">Start</button>
+        <button id="stop">Stop</button>
+        <button id="randomize">Randomize</button>
+    </div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const rulesSelect = document.getElementById('rules');
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        const randomizeButton = document.getElementById('randomize');
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const cellSize = 10;
+        const cols = width / cellSize;
+        const rows = height / cellSize;
+
+        let grid = createGrid();
+        let running = false;
+        let animationFrame;
+
+        function createGrid() {
+            return new Array(rows).fill(null).map(() => new Array(cols).fill(0));
+        }
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, width, height);
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    ctx.fillStyle = grid[y][x] ? '#fff' : '#000';
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+
+        function getNeighbors(x, y) {
+            const neighbors = [
+                [x - 1, y - 1], [x, y - 1], [x + 1, y - 1],
+                [x - 1, y],             [x + 1, y],
+                [x - 1, y + 1], [x, y + 1], [x + 1, y + 1]
+            ];
+            return neighbors.filter(([nx, ny]) => nx >= 0 && nx < cols && ny >= 0 && ny < rows);
+        }
+
+        function applyRuleset() {
+            const newGrid = createGrid();
+            const ruleset = rulesSelect.value;
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const neighbors = getNeighbors(x, y);
+                    const aliveNeighbors = neighbors.reduce((sum, [nx, ny]) => sum + grid[ny][nx], 0);
+                    
+                    if (ruleset === 'conway') {
+                        newGrid[y][x] = (grid[y][x] && (aliveNeighbors === 2 || aliveNeighbors === 3)) || (!grid[y][x] && aliveNeighbors === 3) ? 1 : 0;
+                    } else if (ruleset === 'maze') {
+                        newGrid[y][x] = (grid[y][x] && (aliveNeighbors >= 1 && aliveNeighbors <= 5)) || (!grid[y][x] && aliveNeighbors === 3) ? 1 : 0;
+                    } else if (ruleset === 'highlife') {
+                        newGrid[y][x] = (grid[y][x] && (aliveNeighbors === 2 || aliveNeighbors === 3)) || (!grid[y][x] && (aliveNeighbors === 3 || aliveNeighbors === 6)) ? 1 : 0;
+                    }
+                }
+            }
+            grid = newGrid;
+        }
+
+        function loop() {
+            if (running) {
+                applyRuleset();
+                drawGrid();
+                animationFrame = requestAnimationFrame(loop);
+            }
+        }
+
+        function start() {
+            if (!running) {
+                running = true;
+                loop();
+            }
+        }
+
+        function stop() {
+            if (running) {
+                running = false;
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+
+        function randomize() {
+            grid = grid.map(row => row.map(() => Math.random() > 0.7 ? 1 : 0));
+            drawGrid();
+        }
+
+        startButton.addEventListener('click', start);
+        stopButton.addEventListener('click', stop);
+        randomizeButton.addEventListener('click', randomize);
+
+        drawGrid();
+    </script>
+</body>
+</html>

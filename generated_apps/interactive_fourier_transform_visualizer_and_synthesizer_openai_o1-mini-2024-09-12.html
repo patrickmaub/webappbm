@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Fourier Transform Visualizer and Synthesizer</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            padding: 10px 20px;
+            background-color: #1f1f1f;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.5em;
+            color: #fff;
+        }
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 20px;
+            overflow: hidden;
+        }
+        .canvas-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            overflow: hidden;
+        }
+        canvas {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            flex: 1;
+        }
+        .controls {
+            margin-top: 20px;
+            background-color: #1f1f1f;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .controls h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .wave-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .wave {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+        }
+        .wave label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9em;
+            flex: 1;
+        }
+        .wave input[type="range"] {
+            width: 100%;
+        }
+        .add-wave-btn {
+            padding: 10px 15px;
+            background-color: #3a3a3a;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .add-wave-btn:hover {
+            background-color: #555;
+        }
+        .playback-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .playback-controls button {
+            padding: 10px 15px;
+            background-color: #3a3a3a;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .playback-controls button:hover {
+            background-color: #555;
+        }
+        /* Scrollbar Styling */
+        .wave-controls::-webkit-scrollbar {
+            width: 8px;
+        }
+        .wave-controls::-webkit-scrollbar-track {
+            background: #1f1f1f;
+        }
+        .wave-controls::-webkit-scrollbar-thumb {
+            background-color: #555;
+            border-radius: 4px;
+        }
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .canvas-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Fourier Transform Visualizer & Synthesizer</h1>
+        <div>
+            <button id="resetButton" style="padding:10px 15px; background-color:#3a3a3a; border:none; border-radius:5px; color:#fff; cursor:pointer;">Reset</button>
+        </div>
+    </header>
+    <main>
+        <div class="canvas-container">
+            <div>
+                <h2>Time Domain</h2>
+                <canvas id="timeDomainCanvas"></canvas>
+            </div>
+            <div>
+                <h2>Frequency Domain</h2>
+                <canvas id="frequencyDomainCanvas"></canvas>
+            </div>
+        </div>
+        <div class="controls">
+            <h2>Wave Components</h2>
+            <div class="wave-controls" id="waveControls">
+                <!-- Dynamically added wave controls will appear here -->
+            </div>
+            <button class="add-wave-btn" id="addWaveButton">Add Sine Wave</button>
+            <div class="playback-controls">
+                <button id="playButton">Play</button>
+                <button id="stopButton" disabled>Stop</button>
+                <span id="status">Stopped</span>
+            </div>
+        </div>
+    </main>
+    <script>
+        // Utility Functions
+        function createElement(tag, attrs = {}, ...children) {
+            const elem = document.createElement(tag);
+            for (let key in attrs) {
+                if (key === 'class') {
+                    elem.className = attrs[key];
+                } else if (key === 'dataset') {
+                    for (let dataKey in attrs[key]) {
+                        elem.dataset[dataKey] = attrs[key][dataKey];
+                    }
+                } else {
+                    elem.setAttribute(key, attrs[key]);
+                }
+            }
+            children.forEach(child => {
+                if (typeof child === 'string') {
+                    elem.appendChild(document.createTextNode(child));
+                } else {
+                    elem.appendChild(child);
+                }
+            });
+            return elem;
+        }
+
+        // Fourier Transform Implementation (FFT)
+        class FFT {
+            constructor(bufferSize) {
+                this.bufferSize = bufferSize;
+                this.spectrum = new Uint8Array(bufferSize / 2);
+                this.sineTable = new Float64Array(bufferSize);
+                this.cosineTable = new Float64Array(bufferSize);
+                for (let i = 0; i < bufferSize; i++) {
+                    this.sineTable[i] = Math.sin(-2 * Math.PI * i / bufferSize);
+                    this.cosineTable[i] = Math.cos(-2 * Math.PI * i / bufferSize);
+                }
+                this.reverseTable = new Uint32Array(bufferSize);
+                let limit = 1;
+                let bit = bufferSize >> 1;
+                while (limit < bufferSize) {
+                    for (let i = 0; i < limit; i++) {
+                        this.reverseTable[i + limit] = this.reverseTable[i] + bit;
+                    }
+                    limit = limit << 1;
+                    bit = bit >> 1;
+                }
+                this.real = new Float64Array(bufferSize);
+                this.imag = new Float64Array(bufferSize);
+                this.peak = 0;
+            }
+
+            forward(buffer) {
+                const bufferSize = this.bufferSize;
+                for (let i = 0; i < bufferSize; i++) {
+                    this.real[i] = buffer[this.reverseTable[i]] || 0;
+                    this.imag[i] = 0;
+                }
+                let halfSize = 1;
+                while (halfSize < bufferSize) {
+                    const phaseShiftStep = Math.PI / halfSize;
+                    const sin = Math.sin(phaseShiftStep);
+                    const cos = Math.cos(phaseShiftStep);
+                    for (let i = 0; i < bufferSize; i += 2 * halfSize) {
+                        for (let j = 0; j < halfSize; j++) {
+                            const index = i + j;
+                            const tReal = this.real[index + halfSize] * cos - this.imag[index + halfSize] * sin;
+                            const tImag = this.real[index + halfSize] * sin + this.imag[index + halfSize] * cos;
+                            this.real[index + halfSize] = this.real[index] - tReal;
+                            this.imag[index + halfSize] = this.imag[index] - tImag;
+                            this.real[index] += tReal;
+                            this.imag[index] += tImag;
+                        }
+                    }
+                    halfSize <<= 1;
+                }
+
+                for (let i = 0; i < bufferSize / 2; i++) {
+                    const re = this.real[i];
+                    const im = this.imag[i];
+                    const mag = Math.sqrt(re * re + im * im);
+                    this.spectrum[i] = Math.min(255, (mag * 10) || 0);
+                    if (this.spectrum[i] > this.peak) {
+                        this.peak = this.spectrum[i];
+                    }
+                }
+                return this.spectrum;
+            }
+        }
+
+        // Global Variables
+        const timeCanvas = document.getElementById('timeDomainCanvas');
+        const freqCanvas = document.getElementById('frequencyDomainCanvas');
+        const waveControlsContainer = document.getElementById('waveControls');
+        const addWaveButton = document.getElementById('addWaveButton');
+        const playButton = document.getElementById('playButton');
+        const stopButton = document.getElementById('stopButton');
+        const resetButton = document.getElementById('resetButton');
+        const statusSpan = document.getElementById('status');
+
+        let waves = [];
+        let waveIdCounter = 0;
+        let animationId;
+        let fft = new FFT(1024);
+        let audioCtx = null;
+        let oscillatorNodes = [];
+        let isPlaying = false;
+
+        // Initialize Canvases
+        function resizeCanvases() {
+            [timeCanvas, freqCanvas].forEach(canvas => {
+                canvas.width = canvas.parentElement.clientWidth - 20;
+                canvas.height = 200;
+            });
+        }
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // Drawing Functions
+        function drawTimeDomain(buffer) {
+            const ctx = timeCanvas.getContext('2d');
+            ctx.clearRect(0, 0, timeCanvas.width, timeCanvas.height);
+            ctx.beginPath();
+            ctx.strokeStyle = '#00ff00';
+            const sliceWidth = timeCanvas.width / buffer.length;
+            let x = 0;
+            for (let i = 0; i < buffer.length; i++) {
+                const y = timeCanvas.height / 2 - buffer[i] * (timeCanvas.height / 2) * 0.8;
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                x += sliceWidth;
+            }
+            ctx.stroke();
+        }
+
+        function drawFrequencyDomain(spectrum) {
+            const ctx = freqCanvas.getContext('2d');
+            ctx.clearRect(0, 0, freqCanvas.width, freqCanvas.height);
+            const barWidth = (freqCanvas.width / spectrum.length) * 2.5;
+            let x = 0;
+            for (let i = 0; i < spectrum.length; i++) {
+                const barHeight = spectrum[i] / 255 * freqCanvas.height;
+                ctx.fillStyle = `rgb(${barHeight + 100},50,50)`;
+                ctx.fillRect(x, freqCanvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+
+        // Wave Management
+        function addWave(amplitude = 1, frequency = 440) {
+            const waveId = waveIdCounter++;
+            const wave = { id: waveId, amplitude, frequency };
+            waves.push(wave);
+            renderWaveControls();
+        }
+
+        function removeWave(id) {
+            waves = waves.filter(w => w.id !== id);
+            renderWaveControls();
+        }
+
+        function renderWaveControls() {
+            waveControlsContainer.innerHTML = '';
+            waves.forEach(wave => {
+                const waveDiv = createElement('div', { class: 'wave' });
+
+                const ampLabel = createElement('label', {}, `Amplitude`,
+                    createElement('input', { type: 'range', min: 0, max: 2, step: 0.01, value: wave.amplitude, 'data-type': 'amplitude', 'data-id': wave.id })
+                );
+
+                const freqLabel = createElement('label', {}, `Frequency (Hz)`,
+                    createElement('input', { type: 'range', min: 20, max: 2000, step: 1, value: wave.frequency, 'data-type': 'frequency', 'data-id': wave.id })
+                );
+
+                const removeBtn = createElement('button', { style: 'padding:5px 10px; background-color:#ff4d4d; border:none; border-radius:5px; color:#fff; cursor:pointer;', 'data-id': wave.id }, 'Remove');
+
+                waveDiv.appendChild(ampLabel);
+                waveDiv.appendChild(freqLabel);
+                waveDiv.appendChild(removeBtn);
+                waveControlsContainer.appendChild(waveDiv);
+            });
+        }
+
+        // Event Listeners for Wave Controls
+        waveControlsContainer.addEventListener('input', (e) => {
+            if (e.target.tagName === 'INPUT') {
+                const id = parseInt(e.target.dataset.id);
+                const type = e.target.dataset.type;
+                const value = parseFloat(e.target.value);
+                const wave = waves.find(w => w.id === id);
+                if (wave) {
+                    wave[type] = value;
+                }
+            }
+        });
+
+        waveControlsContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const id = parseInt(e.target.dataset.id);
+                removeWave(id);
+            }
+        });
+
+        addWaveButton.addEventListener('click', () => {
+            addWave();
+        });
+
+        resetButton.addEventListener('click', () => {
+            waves = [];
+            renderWaveControls();
+        });
+
+        // Audio Playback
+        function playAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            oscillatorNodes = [];
+            waves.forEach(wave => {
+                const osc = audioCtx.createOscillator();
+                osc.frequency.setValueAtTime(wave.frequency, audioCtx.currentTime);
+                osc.type = 'sine';
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(wave.amplitude, audioCtx.currentTime);
+                osc.connect(gainNode).connect(audioCtx.destination);
+                osc.start();
+                oscillatorNodes.push({ osc, gainNode });
+            });
+            isPlaying = true;
+            updatePlaybackButtons();
+        }
+
+        function stopAudio() {
+            oscillatorNodes.forEach(node => {
+                node.osc.stop();
+            });
+            oscillatorNodes = [];
+            isPlaying = false;
+            updatePlaybackButtons();
+        }
+
+        playButton.addEventListener('click', () => {
+            if (!isPlaying) {
+                playAudio();
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (isPlaying) {
+                stopAudio();
+            }
+        });
+
+        function updatePlaybackButtons() {
+            playButton.disabled = isPlaying;
+            stopButton.disabled = !isPlaying;
+            statusSpan.textContent = isPlaying ? 'Playing...' : 'Stopped';
+        }
+
+        // Animation and Visualization
+        function animate() {
+            // Generate time-domain signal
+            const sampleRate = 44100;
+            const numSamples = fft.bufferSize;
+            let buffer = new Float32Array(numSamples);
+            for (let i = 0; i < numSamples; i++) {
+                let sample = 0;
+                waves.forEach(wave => {
+                    sample += wave.amplitude * Math.sin(2 * Math.PI * wave.frequency * i / sampleRate);
+                });
+                buffer[i] = sample / waves.length;
+            }
+
+            // Draw Time Domain
+            drawTimeDomain(buffer);
+
+            // Perform FFT and Draw Frequency Domain
+            const spectrum = fft.forward(buffer);
+            drawFrequencyDomain(spectrum);
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Initialize with one wave
+        addWave(1, 440);
+        animate();
+
+        // Stop audio on page unload
+        window.addEventListener('beforeunload', () => {
+            stopAudio();
+        });
+    </script>
+</body>
+</html>

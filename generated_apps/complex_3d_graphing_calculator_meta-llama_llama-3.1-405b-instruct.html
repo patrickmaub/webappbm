@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex 3D Graphing Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        
+        #calculator-container {
+            width: 80%;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #cccccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        #calculator-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        #calculator-form {
+            margin-bottom: 20px;
+        }
+        
+        #calculator-form label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        #calculator-form input[type="text"] {
+            width: 100%;
+            height: 30px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+        }
+        
+        #calculator-form select {
+            width: 100%;
+            height: 30px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+        }
+        
+        #calculator-form button[type="button"] {
+            width: 100%;
+            height: 30px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #calculator-form button[type="button"]:hover {
+            background-color: #3e8e41;
+        }
+        
+        #graph-container {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+            border: 1px solid #cccccc;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="calculator-container">
+        <h1 id="calculator-header">Complex 3D Graphing Calculator</h1>
+        <form id="calculator-form">
+            <label for="equation">Equation:</label>
+            <input type="text" id="equation" placeholder="Enter equation (e.g. x^2 + y^2 - z^2 = 0)">
+            
+            <label for="x-min">X Min:</label>
+            <input type="text" id="x-min" placeholder="Enter X min value">
+            
+            <label for="x-max">X Max:</label>
+            <input type="text" id="x-max" placeholder="Enter X max value">
+            
+            <label for="y-min">Y Min:</label>
+            <input type="text" id="y-min" placeholder="Enter Y min value">
+            
+            <label for="y-max">Y Max:</label>
+            <input type="text" id="y-max" placeholder="Enter Y max value">
+            
+            <label for="z-min">Z Min:</label>
+            <input type="text" id="z-min" placeholder="Enter Z min value">
+            
+            <label for="z-max">Z Max:</label>
+            <input type="text" id="z-max" placeholder="Enter Z max value">
+            
+            <label for="graph-type">Graph Type:</label>
+            <select id="graph-type">
+                <option value="surface">Surface</option>
+                <option value="wireframe">Wireframe</option>
+                <option value="scatter">Scatter</option>
+            </select>
+            
+            <button type="button" id="graph-button">Graph</button>
+        </form>
+        <div id="graph-container"></div>
+    </div>
+    
+    <script>
+        // Get the graph container element
+        const graphContainer = document.getElementById('graph-container');
+        
+        // Get the equation input element
+        const equationInput = document.getElementById('equation');
+        
+        // Get the X min input element
+        const xMinInput = document.getElementById('x-min');
+        
+        // Get the X max input element
+        const xMaxInput = document.getElementById('x-max');
+        
+        // Get the Y min input element
+        const yMinInput = document.getElementById('y-min');
+        
+        // Get the Y max input element
+        const yMaxInput = document.getElementById('y-max');
+        
+        // Get the Z min input element
+        const zMinInput = document.getElementById('z-min');
+        
+        // Get the Z max input element
+        const zMaxInput = document.getElementById('z-max');
+        
+        // Get the graph type select element
+        const graphTypeSelect = document.getElementById('graph-type');
+        
+        // Get the graph button element
+        const graphButton = document.getElementById('graph-button');
+        
+        // Function to parse the equation and generate 3D points
+        function parseEquation(equation) {
+            // Use a library like MathJS to parse the equation
+            // For simplicity, we'll assume the equation is in the format "x^2 + y^2 - z^2 = 0"
+            const equationParts = equation.split('=');
+            const leftSide = equationParts[0].trim();
+            const rightSide = equationParts[1].trim();
+            
+            // Use a library like MathJS to evaluate the left and right sides of the equation
+            // For simplicity, we'll assume the equation is a simple polynomial
+            const xCoefficients = [];
+            const yCoefficients = [];
+            const zCoefficients = [];
+            const constant = 0;
+            
+            // Extract coefficients from the left side of the equation
+            const leftSideTerms = leftSide.split('+');
+            for (const term of leftSideTerms) {
+                const termParts = term.trim().split('*');
+                if (termParts.length === 2) {
+                    const coefficient = parseFloat(termParts[0]);
+                    const variable = termParts[1].trim();
+                    if (variable === 'x') {
+                        xCoefficients.push(coefficient);
+                    } else if (variable === 'y') {
+                        yCoefficients.push(coefficient);
+                    } else if (variable === 'z') {
+                        zCoefficients.push(coefficient);
+                    }
+                } else {
+                    constant = parseFloat(termParts[0]);
+                }
+            }
+            
+            // Generate 3D points based on the equation
+            const points = [];
+            for (let x = parseFloat(xMinInput.value); x <= parseFloat(xMaxInput.value); x += 0.1) {
+                for (let y = parseFloat(yMinInput.value); y <= parseFloat(yMaxInput.value); y += 0.1) {
+                    for (let z = parseFloat(zMinInput.value); z <= parseFloat(zMaxInput.value); z += 0.1) {
+                        let leftSideValue = 0;
+                        for (const coefficient of xCoefficients) {
+                            leftSideValue += coefficient * Math.pow(x, 2);
+                        }
+                        for (const coefficient of yCoefficients) {
+                            leftSideValue += coefficient * Math.pow(y, 2);
+                        }
+                        for (const coefficient of zCoefficients) {
+                            leftSideValue += coefficient * Math.pow(z, 2);
+                        }
+                        leftSideValue += constant;
+                        
+                        if (Math.abs(leftSideValue - parseFloat(rightSide)) < 0.01) {
+                            points.push([x, y, z]);
+                        }
+                    }
+                }
+            }
+            
+            return points;
+        }
+        
+        // Function to render the 3D graph
+        function renderGraph(points) {
+            // Use a library like Three.js to render the 3D graph
+            // For simplicity, we'll use the canvas element to render the graph
+            const canvas = document.createElement('canvas');
+            canvas.width = graphContainer.offsetWidth;
+            canvas.height = graphContainer.offsetHeight;
+            graphContainer.innerHTML = '';
+            graphContainer.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Render the graph based on the graph type
+            if (graphTypeSelect.value === 'surface') {
+                // Render the surface graph
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                for (const point of points) {
+                    ctx.beginPath();
+                    ctx.arc(point[0] * 10 + canvas.width / 2, point[1] * 10 + canvas.height / 2, 2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            } else if (graphTypeSelect.value === 'wireframe') {
+                // Render the wireframe graph
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < points.length - 1; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(points[i][0] * 10 + canvas.width / 2, points[i][1] * 10 + canvas.height / 2);
+                    ctx.lineTo(points[i + 1][0] * 10 + canvas.width / 2, points[i + 1][1] * 10 + canvas.height / 2);
+                    ctx.stroke();
+                }
+            } else if (graphTypeSelect.value === 'scatter') {
+                // Render the scatter graph
+                ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
+                for (const point of points) {
+                    ctx.beginPath();
+                    ctx.arc(point[0] * 10 + canvas.width / 2, point[1] * 10 + canvas.height / 2, 2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // Add event listener to the graph button
+        graphButton.addEventListener('click', () => {
+            // Parse the equation and generate 3D points
+            const points = parseEquation(equationInput.value);
+            
+            // Render the 3D graph
+            renderGraph(points);
+        });
+    </script>
+</body>
+</html>

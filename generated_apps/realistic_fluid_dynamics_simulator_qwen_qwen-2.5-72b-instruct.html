@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realistic Fluid Dynamics Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #controls label {
+            margin: 5px 0;
+        }
+        #controls input {
+            margin: 5px 0;
+        }
+        #canvas-container {
+            width: 800px;
+            height: 600px;
+            border: 1px solid #000;
+        }
+        #info {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h2>Controls</h2>
+        <label for="viscosity">Viscosity: <input type="range" id="viscosity" min="0.001" max="0.1" step="0.001" value="0.01"></label>
+        <label for="density">Density: <input type="range" id="density" min="0.1" max="1.0" step="0.01" value="0.5"></label>
+        <label for="force">Force: <input type="range" id="force" min="0.1" max="10.0" step="0.1" value="1.0"></label>
+        <label for="resolution">Resolution: <input type="range" id="resolution" min="16" max="128" step="16" value="64"></label>
+        <button id="reset">Reset</button>
+    </div>
+    <div id="canvas-container"></div>
+    <div id="info">
+        <p>Fluid Dynamics Simulator by Your Name</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+        const canvasContainer = document.getElementById('canvas-container');
+        const viscositySlider = document.getElementById('viscosity');
+        const densitySlider = document.getElementById('density');
+        const forceSlider = document.getElementById('force');
+        const resolutionSlider = document.getElementById('resolution');
+        const resetButton = document.getElementById('reset');
+
+        let fluid;
+        let resolution = 64;
+        let viscosity = 0.01;
+        let density = 0.5;
+        let force = 1.0;
+
+        function setup() {
+            const canvas = createCanvas(800, 600);
+            canvas.parent(canvasContainer);
+            fluid = new Fluid(resolution, viscosity, density);
+            resetButton.addEventListener('click', resetSimulation);
+        }
+
+        function draw() {
+            background(255);
+            fluid.update();
+            fluid.render();
+            applyForce();
+        }
+
+        function resetSimulation() {
+            resolution = parseInt(resolutionSlider.value);
+            viscosity = parseFloat(viscositySlider.value);
+            density = parseFloat(densitySlider.value);
+            force = parseFloat(forceSlider.value);
+            fluid = new Fluid(resolution, viscosity, density);
+        }
+
+        function applyForce() {
+            if (mouseIsPressed) {
+                const mx = mouseX;
+                const my = mouseY;
+                fluid.addForce(mx, my, force);
+            }
+        }
+
+        class Fluid {
+            constructor(resolution, viscosity, density) {
+                this.res = resolution;
+                this.viscosity = viscosity;
+                this.density = density;
+                this.width = width;
+                this.height = height;
+                this.densityField = new Array(this.res * this.res).fill(0);
+                this.velocityField = new Array(this.res * this.res).fill(0).map(() => createVector(0, 0));
+                this.pressureField = new Array(this.res * this.res).fill(0);
+                this.divergenceField = new Array(this.res * this.res).fill(0);
+                this.tempDensityField = new Array(this.res * this.res).fill(0);
+                this.tempVelocityField = new Array(this.res * this.res).map(() => createVector(0, 0));
+                this.tempPressureField = new Array(this.res * this.res).fill(0);
+            }
+
+            addForce(x, y, magnitude) {
+                const i = floor(x / (this.width / this.res));
+                const j = floor(y / (this.height / this.res));
+                if (i >= 0 && i < this.res && j >= 0 && j < this.res) {
+                    const index = i + j * this.res;
+                    this.densityField[index] += magnitude;
+                    this.velocityField[index].add(createVector(random(-1, 1), random(-1, 1)).setMag(magnitude));
+                }
+            }
+
+            update() {
+                this.advection();
+                this.diffusion();
+                this.projection();
+            }
+
+            advection() {
+                for (let i = 0; i < this.res; i++) {
+                    for (let j = 0; j < this.res; j++) {
+                        const index = i + j * this.res;
+                        const v = this.velocityField[index];
+                        const x = i - v.x;
+                        const y = j - v.y;
+                        const i0 = clamp(floor(x), 0, this.res - 1);
+                        const i1 = clamp(floor(x) + 1, 0, this.res - 1);
+                        const j0 = clamp(floor(y), 0, this.res - 1);
+                        const j1 = clamp(floor(y) + 1, 0, this.res - 1);
+                        const s = x - i0;
+                        const t = y - j0;
+                        const d00 = this.densityField[i0 + j0 * this.res];
+                        const d10 = this.densityField[i1 + j0 * this.res];
+                        const d01 = this.densityField[i0 + j1 * this.res];
+                        const d11 = this.densityField[i1 + j1 * this.res];
+                        const density = lerp(lerp(d00, d10, s), lerp(d01, d11, s), t);
+                        this.tempDensityField[index] = density;
+                    }
+                }
+                this.densityField = this.tempDensityField.slice();
+            }
+
+            diffusion() {
+                const k = this.viscosity * (this.width / this.res) ** 2;
+                for (let iter = 0; iter < 20; iter++) {
+                    for (let i = 1; i < this.res - 1; i++) {
+                        for (let j = 1; j < this.res - 1; j++) {
+                            const index = i + j * this.res;
+                            const d = (1 - 4 * k) * this.densityField[index] + k * (this.densityField[i - 1 + j * this.res] + this.densityField[i + 1 + j * this.res] + this.densityField[i + (j - 1) * this.res] + this.densityField[i + (j + 1) * this.res]);
+                            this.tempDensityField[index] = d;
+                        }
+                    }
+                }
+                this.densityField = this.tempDensityField.slice();
+            }
+
+            projection() {
+                for (let i = 1; i < this.res - 1; i++) {
+                    for (let j = 1; j < this.res - 1; j++) {
+                        const index = i + j * this.res;
+                        const div = 0.5 * (this.velocityField[i + 1 + j * this.res].x - this.velocityField[i - 1 + j * this.res].x + this.velocityField[i + (j + 1) * this.res].y - this.velocityField[i + (j - 1) * this.res].y);
+                        this.divergenceField[index] = div;
+                    }
+                }
+
+                for (let iter = 0; iter < 20; iter++) {
+                    for (let i = 1; i < this.res - 1; i++) {
+                        for (let j = 1; j < this.res - 1; j++) {
+                            const index = i + j * this.res;
+                            const p = (1 - 4) * this.pressureField[index] + (this.pressureField[i - 1 + j * this.res] + this.pressureField[i + 1 + j * this.res] + this.pressureField[i + (j - 1) * this.res] + this.pressureField[i + (j + 1) * this.res]) - this.divergenceField[index];
+                            this.tempPressureField[index] = p;
+                        }
+                    }
+                }
+                this.pressureField = this.tempPressureField.slice();
+
+                for (let i = 1; i < this.res - 1; i++) {
+                    for (let j = 1; j < this.res - 1; j++) {
+                        const index = i + j * this.res;
+                        const p = this.pressureField[index];
+                        this.velocityField[index].x -= p - this.pressureField[i - 1 + j * this.res];
+                        this.velocityField[index].y -= p - this.pressureField[i + (j - 1) * this.res];
+                    }
+                }
+            }
+
+            render() {
+                noStroke();
+                for (let i = 0; i < this.res; i++) {
+                    for (let j = 0; j < this.res; j++) {
+                        const index = i + j * this.res;
+                        const density = this.densityField[index];
+                        const x = i * (this.width / this.res);
+                        const y = j * (this.height / this.res);
+                        fill(255 - density * 255);
+                        rect(x, y, this.width / this.res, this.height / this.res);
+                    }
+                }
+            }
+        }
+
+        function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), max);
+        }
+    </script>
+</body>
+</html>

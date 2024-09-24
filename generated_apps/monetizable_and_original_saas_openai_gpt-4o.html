@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskMaster - Your Ultimate Task Management Tool</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+    }
+    .header {
+      background: #333;
+      color: #fff;
+      padding: 10px 15px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .login-form, .task-page {
+      display: none;
+    }
+    .hidden {
+      display: none;
+    }
+    .visible {
+      display: block;
+    }
+    .flex {
+      display: flex;
+    }
+    .sidebar {
+      width: 200px;
+      background: #444;
+      color: #fff;
+      padding: 15px;
+    }
+    .content {
+      flex-grow: 1;
+      padding: 15px;
+      background: #fff;
+    }
+    .task-list {
+      list-style: none;
+      padding: 0;
+    }
+    .task-list li {
+      background: #f8f8f8;
+      margin: 10px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .task-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .task-action {
+      cursor: pointer;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <h1>TaskMaster</h1>
+    </div>
+  </header>
+  <main class="container">
+    <section class="login-form visible" id="login-form">
+      <h2>Login to TaskMaster</h2>
+      <form id="loginForm">
+        <div>
+          <label for="username">Username</label>
+          <input type="text" id="username" required>
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input type="password" id="password" required>
+        </div>
+        <button type="submit">Login</button>
+      </form>
+    </section>
+    <section class="task-page hidden" id="task-page">
+      <div class="flex">
+        <aside class="sidebar">
+          <h3>Navigation</h3>
+          <ul>
+            <li><button onclick="showTaskList()">All Tasks</button></li>
+            <li><button onclick="showCompletedTasks()">Completed Tasks</button></li>
+          </ul>
+        </aside>
+        <div class="content">
+          <h2>Your Tasks</h2>
+          <ul class="task-list" id="task-list">
+            <!-- Tasks will be loaded here dynamically -->
+          </ul>
+          <div>
+            <h3>Add New Task</h3>
+            <form id="taskForm">
+              <div>
+                <label for="taskName">Task Name</label>
+                <input type="text" id="taskName" required>
+              </div>
+              <div>
+                <label for="taskDueDate">Due Date</label>
+                <input type="date" id="taskDueDate" required>
+              </div>
+              <button type="submit">Add Task</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const loginSection = document.getElementById('login-form');
+    const taskPage = document.getElementById('task-page');
+    const taskForm = document.getElementById('taskForm');
+    const taskList = document.getElementById('task-list');
+  
+    let tasks = localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks')) : [];
+  
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+  
+      // For simplicity, we are not doing real authentication
+      if (username && password) {
+        loginSection.classList.add('hidden');
+        taskPage.classList.remove('hidden');
+        loadTasks();
+      }
+    });
+  
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const taskName = document.getElementById('taskName').value;
+      const taskDueDate = document.getElementById('taskDueDate').value;
+      tasks.push({ name: taskName, dueDate: taskDueDate, isComplete: false });
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      loadTasks();
+    });
+  
+    function loadTasks(filter = '') {
+      taskList.innerHTML = '';
+      tasks.filter(task => !filter || task.isComplete.toString() === filter).forEach((task, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div>
+            <strong>${task.name}</strong>
+            <em>(Due: ${task.dueDate})</em>
+          </div>
+          <div class="task-actions">
+            <i class="task-action fas fa-check" onclick="completeTask(${index})"></i>
+            <i class="task-action fas fa-trash" onclick="deleteTask(${index})"></i>
+          </div>
+        `;
+        taskList.appendChild(li);
+      });
+    }
+  
+    function completeTask(index) {
+      tasks[index].isComplete = true;
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      loadTasks();
+    }
+  
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      loadTasks();
+    }
+  
+    function showTaskList() {
+      loadTasks();
+    }
+  
+    function showCompletedTasks() {
+      loadTasks('true');
+    }
+  
+    document.addEventListener('DOMContentLoaded', () => {
+      if (document.getElementById('login-form').classList.contains('hidden')) {
+        loadTasks();
+      }
+    });
+  </script>
+</body>
+</html>

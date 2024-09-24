@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Fractal Explorer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 300px;
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #fractalCanvas {
+            flex-grow: 1;
+            background-color: #000;
+        }
+        h1, h2 {
+            margin-top: 0;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="number"], input[type="text"], select {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #customAlgorithm {
+            width: 100%;
+            height: 100px;
+            margin-top: 5px;
+        }
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            margin-right: 5px;
+            border: 1px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>Fractal Explorer</h1>
+            <h2>Settings</h2>
+            <label for="fractalType">Fractal Type:</label>
+            <select id="fractalType">
+                <option value="mandelbrot">Mandelbrot</option>
+                <option value="julia">Julia</option>
+                <option value="burningShip">Burning Ship</option>
+                <option value="mandelbox">Mandelbox</option>
+                <option value="custom">Custom</option>
+            </select>
+            <label for="maxIterations">Max Iterations:</label>
+            <input type="number" id="maxIterations" value="100" min="1" max="1000">
+            <label for="escapeRadius">Escape Radius:</label>
+            <input type="number" id="escapeRadius" value="2" step="0.1" min="0.1" max="10">
+            <label for="zoom">Zoom:</label>
+            <input type="number" id="zoom" value="1" step="0.1" min="0.1" max="100">
+            <label for="centerX">Center X:</label>
+            <input type="number" id="centerX" value="0" step="0.1">
+            <label for="centerY">Center Y:</label>
+            <input type="number" id="centerY" value="0" step="0.1">
+            <label for="juliaRe">Julia Real:</label>
+            <input type="number" id="juliaRe" value="-0.7" step="0.01">
+            <label for="juliaIm">Julia Imaginary:</label>
+            <input type="number" id="juliaIm" value="0.27015" step="0.01">
+            <label for="colorScheme">Color Scheme:</label>
+            <select id="colorScheme">
+                <option value="rainbow">Rainbow</option>
+                <option value="grayscale">Grayscale</option>
+                <option value="fire">Fire</option>
+                <option value="electric">Electric</option>
+                <option value="custom">Custom</option>
+            </select>
+            <div id="customColorContainer" style="display: none;">
+                <label for="customColor1">Color 1:</label>
+                <input type="color" id="customColor1" value="#ff0000">
+                <label for="customColor2">Color 2:</label>
+                <input type="color" id="customColor2" value="#00ff00">
+                <label for="customColor3">Color 3:</label>
+                <input type="color" id="customColor3" value="#0000ff">
+            </div>
+            <div id="customAlgorithmContainer" style="display: none;">
+                <label for="customAlgorithm">Custom Algorithm:</label>
+                <textarea id="customAlgorithm">z = z * z + c;</textarea>
+            </div>
+            <button id="generateFractal">Generate Fractal</button>
+            <button id="saveFractal">Save Fractal</button>
+        </div>
+        <div class="main">
+            <canvas id="fractalCanvas"></canvas>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        function resizeCanvas() {
+            width = canvas.width = canvas.offsetWidth;
+            height = canvas.height = canvas.offsetHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const fractalType = document.getElementById('fractalType');
+        const maxIterations = document.getElementById('maxIterations');
+        const escapeRadius = document.getElementById('escapeRadius');
+        const zoom = document.getElementById('zoom');
+        const centerX = document.getElementById('centerX');
+        const centerY = document.getElementById('centerY');
+        const juliaRe = document.getElementById('juliaRe');
+        const juliaIm = document.getElementById('juliaIm');
+        const colorScheme = document.getElementById('colorScheme');
+        const customColorContainer = document.getElementById('customColorContainer');
+        const customColor1 = document.getElementById('customColor1');
+        const customColor2 = document.getElementById('customColor2');
+        const customColor3 = document.getElementById('customColor3');
+        const customAlgorithmContainer = document.getElementById('customAlgorithmContainer');
+        const customAlgorithm = document.getElementById('customAlgorithm');
+        const generateFractalBtn = document.getElementById('generateFractal');
+        const saveFractalBtn = document.getElementById('saveFractal');
+
+        fractalType.addEventListener('change', () => {
+            customAlgorithmContainer.style.display = fractalType.value === 'custom' ? 'block' : 'none';
+        });
+
+        colorScheme.addEventListener('change', () => {
+            customColorContainer.style.display = colorScheme.value === 'custom' ? 'block' : 'none';
+        });
+
+        generateFractalBtn.addEventListener('click', generateFractal);
+        saveFractalBtn.addEventListener('click', saveFractal);
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            zoom.value = parseFloat(zoom.value) * zoomFactor;
+            generateFractal();
+        });
+
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('mousemove', drag);
+        canvas.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('mouseleave', endDrag);
+
+        let isDragging = false;
+        let dragStartX, dragStartY;
+
+        function startDrag(e) {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            centerX.value = parseFloat(centerX.value) - dx / (width * parseFloat(zoom.value)) * 4;
+            centerY.value = parseFloat(centerY.value) + dy / (height * parseFloat(zoom.value)) * 4;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            generateFractal();
+        }
+
+        function endDrag() {
+            isDragging = false;
+        }
+
+        function generateFractal() {
+            const type = fractalType.value;
+            const maxIter = parseInt(maxIterations.value);
+            const escapeRad = parseFloat(escapeRadius.value);
+            const zoomValue = parseFloat(zoom.value);
+            const centerXValue = parseFloat(centerX.value);
+            const centerYValue = parseFloat(centerY.value);
+            const juliaReValue = parseFloat(juliaRe.value);
+            const juliaImValue = parseFloat(juliaIm.value);
+            const scheme = colorScheme.value;
+
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    const zx = (x - width / 2) / (0.25 * width * zoomValue) + centerXValue;
+                    const zy = (y - height / 2) / (0.25 * height * zoomValue) + centerYValue;
+
+                    let i;
+                    if (type === 'julia') {
+                        i = julia(zx, zy, juliaReValue, juliaImValue, maxIter, escapeRad);
+                    } else if (type === 'burningShip') {
+                        i = burningShip(zx, zy, maxIter, escapeRad);
+                    } else if (type === 'mandelbox') {
+                        i = mandelbox(zx, zy, maxIter, escapeRad);
+                    } else if (type === 'custom') {
+                        i = customFractal(zx, zy, maxIter, escapeRad);
+                    } else {
+                        i = mandelbrot(zx, zy, maxIter, escapeRad);
+                    }
+
+                    const [r, g, b] = getColor(i, maxIter, scheme);
+                    const pos = (y * width + x) * 4;
+                    data[pos] = r;
+                    data[pos + 1] = g;
+                    data[pos + 2] = b;
+                    data[pos + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function mandelbrot(x0, y0, maxIter, escapeRadius) {
+            let x = 0, y = 0;
+            let x2 = 0, y2 = 0;
+            let iteration = 0;
+
+            while (x2 + y2 <= escapeRadius * escapeRadius && iteration < maxIter) {
+                y = 2 * x * y + y0;
+                x = x2 - y2 + x0;
+                x2 = x * x;
+                y2 = y * y;
+                iteration++;
+            }
+
+            return iteration;
+        }
+
+        function julia(x, y, cx, cy, maxIter, escapeRadius) {
+            let iteration = 0;
+            let x2 = x * x;
+            let y2 = y * y;
+
+            while (x2 + y2 <= escapeRadius * escapeRadius && iteration < maxIter) {
+                y = 2 * x * y + cy;
+                x = x2 - y2 + cx;
+                x2 = x * x;
+                y2 = y * y;
+                iteration++;
+            }
+
+            return iteration;
+        }
+
+        function burningShip(x0, y0, maxIter, escapeRadius) {
+            let x = 0, y = 0;
+            let x2 = 0, y2 = 0;
+            let iteration = 0;
+
+            while (x2 + y2 <= escapeRadius * escapeRadius && iteration < maxIter) {
+                y = Math.abs(2 * x * y) - y0;
+                x = x2 - y2 - x0;
+                x2 = x * x;
+                y2 = y * y;
+                iteration++;
+            }
+
+            return iteration;
+        }
+
+        function mandelbox(x0, y0, maxIter, escapeRadius) {
+            const scale = 2;
+            let x = x0, y = y0;
+            let iteration = 0;
+
+            while (x * x + y * y <= escapeRadius * escapeRadius && iteration < maxIter) {
+                x = boxFold(x);
+                y = boxFold(y);
+                const r = Math.sqrt(x * x + y * y);
+                if (r < 0.5) {
+                    x = x * 4;
+                    y = y * 4;
+                } else if (r < 1) {
+                    x = x / (r * r);
+                    y = y / (r * r);
+                }
+                x = scale * x + x0;
+                y = scale * y + y0;
+                iteration++;
+            }
+
+            return iteration;
+        }
+
+        function boxFold(value) {
+            if (value > 1) {
+                return 2 - value;
+            } else if (value < -1) {
+                return -2 - value;
+            }
+            return value;
+        }
+
+        function customFractal(x0, y0, maxIter, escapeRadius) {
+            let x = x0, y = y0;
+            let iteration = 0;
+            const code = customAlgorithm.value;
+
+            try {
+                const fn = new Function('z', 'c', 'return ' + code);
+                while (x * x + y * y <= escapeRadius * escapeRadius && iteration < maxIter) {
+                    const z = { re: x, im: y };
+                    const c = { re: x0, im: y0 };
+                    const result = fn(z, c);
+                    x = result.re;
+                    y = result.im;
+                    iteration++;
+                }
+            } catch (error) {
+                console.error('Error in custom algorithm:', error);
+                return 0;
+            }
+
+            return iteration;
+        }
+
+        function getColor(iteration, maxIter, scheme) {
+            if (iteration === maxIter) {
+                return [0, 0, 0];
+            }
+
+            const t = iteration / maxIter;
+
+            switch (scheme) {
+                case 'rainbow':
+                    return hsvToRgb(t * 360, 1, 1);
+                case 'grayscale':
+                    const v = Math.floor(t * 255);
+                    return [v, v, v];
+                case 'fire':
+                    return [
+                        Math.floor(t * 255),
+                        Math.floor(Math.pow(t, 0.7) * 255),
+                        Math.floor(Math.pow(t, 3) * 255)
+                    ];
+                case 'electric':
+                    return [
+                        Math.floor(Math.pow(t, 0.5) * 255),
+                        Math.floor(Math.pow(t, 3) * 255),
+                        Math.floor(t * 255)
+                    ];
+                case 'custom':
+                    const color1 = hexToRgb(customColor1.value);
+                    const color2 = hexToRgb(customColor2.value);
+                    const color3 = hexToRgb(customColor3.value);
+                    if (t < 0.5) {
+                        return interpolateColor(color1, color2, t * 2);
+                    } else {
+                        return interpolateColor(color2, color3, (t - 0.5) * 2);
+                    }
+                default:
+                    return [0, 0, 0];
+            }
+        }
+
+        function hsvToRgb(h, s, v) {
+            const c = v * s;
+            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            const m = v - c;
+            let r, g, b;
+
+            if (h < 60) {
+                [r, g, b] = [c, x, 0];
+            } else if (h < 120) {
+                [r, g, b] = [x, c, 0];
+            } else if (h < 180) {
+                [r, g, b] = [0, c, x];
+            } else if (h < 240) {
+                [r, g, b] = [0, x, c];
+            } else if (h < 300) {
+                [r, g, b] = [x, 0, c];
+            } else {
+                [r, g, b] = [c, 0, x];
+            }
+
+            return [
+                Math.floor((r + m) * 255),
+                Math.floor((g + m) * 255),
+                Math.floor((b + m) * 255)
+            ];
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [
+                parseInt(result[1], 16),
+                parseInt(result[2], 16),
+                parseInt(result[3], 16)
+            ] : null;
+        }
+
+        function interpolateColor(color1, color2, t) {
+            return [
+                Math.floor(color1[0] * (1 - t) + color2[0] * t),
+                Math.floor(color1[1] * (1 - t) + color2[1] * t),
+                Math.floor(color1[2] * (1 - t) + color2[2] * t)
+            ];
+        }
+
+        function saveFractal() {
+            const link = document.createElement('a');
+            link.download = 'fractal.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        generateFractal();
+    </script>
+</body>
+</html>

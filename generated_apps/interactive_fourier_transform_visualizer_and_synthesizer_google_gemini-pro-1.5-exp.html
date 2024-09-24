@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Interactive Fourier Transform Visualizer and Synthesizer</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+canvas {
+  display: block;
+}
+
+#controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+label {
+  margin-right: 5px;
+  width: 100px;
+}
+
+input[type="range"] {
+  width: 200px;
+}
+
+button {
+  padding: 8px;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50;
+  color: white;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="controls">
+  <div class="slider-container">
+    <label for="frequency">Frequency:</label>
+    <input type="range" id="frequency" min="1" max="10" value="1" step="0.1">
+  </div>
+  <div class="slider-container">
+    <label for="amplitude">Amplitude:</label>
+    <input type="range" id="amplitude" min="0" max="1" value="0.5" step="0.01">
+  </div>
+  <div class="slider-container">
+    <label for="phase">Phase:</label>
+    <input type="range" id="phase" min="0" max="2" value="0" step="0.01">
+  </div>
+  <button id="add-wave">Add Wave</button>
+  <button id="clear-waves">Clear Waves</button>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let waves = [];
+
+function drawWave(frequency, amplitude, phase) {
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height / 2);
+
+  for (let x = 0; x < canvas.width; x++) {
+    const y = canvas.height / 2 + amplitude * Math.sin(2 * Math.PI * frequency * x / canvas.width + phase);
+    ctx.lineTo(x, y);
+  }
+
+  ctx.strokeStyle = 'rgba(0, 0, 255, 0.5)';
+  ctx.stroke();
+}
+
+function drawCombinedWave() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let combinedY = new Array(canvas.width).fill(canvas.height / 2);
+
+  for (const wave of waves) {
+    for (let x = 0; x < canvas.width; x++) {
+      combinedY[x] += wave.amplitude * Math.sin(2 * Math.PI * wave.frequency * x / canvas.width + wave.phase);
+    }
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(0, combinedY[0]);
+
+  for (let x = 1; x < canvas.width; x++) {
+    ctx.lineTo(x, combinedY[x]);
+  }
+
+  ctx.strokeStyle = 'red';
+  ctx.stroke();
+}
+
+document.getElementById('add-wave').addEventListener('click', () => {
+  const frequency = parseFloat(document.getElementById('frequency').value);
+  const amplitude = parseFloat(document.getElementById('amplitude').value);
+  const phase = parseFloat(document.getElementById('phase').value);
+  waves.push({ frequency, amplitude, phase });
+  drawCombinedWave();
+});
+
+document.getElementById('clear-waves').addEventListener('click', () => {
+  waves = [];
+  drawCombinedWave();
+});
+
+// Initial drawing
+drawCombinedWave();
+</script>
+
+</body>
+</html>

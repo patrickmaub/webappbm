@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Content Repurposing Platform</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        main {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+        }
+
+        #output {
+            white-space: pre-wrap;
+        }
+
+        /* Loader styles */
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AI-Powered Content Repurposing Platform</h1>
+        <p>Transform your long-form content into various formats effortlessly.</p>
+    </header>
+
+    <main>
+        <div class="card">
+            <h2>Input Content</h2>
+            <textarea id="inputContent" placeholder="Paste your long-form content here..."></textarea>
+            <button onclick="repurposeContent()">Repurpose</button>
+        </div>
+
+        <div class="card">
+            <h2>Output Format</h2>
+            <select id="outputFormat">
+                <option value="socialMediaPosts">Social Media Posts</option>
+                <option value="blogOutline">Blog Outline</option>
+                <option value="emailNewsletter">Email Newsletter</option>
+                <option value="shortVideoScript">Short Video Script</option>
+            </select>
+        </div>
+
+        <div class="card">
+            <h2>Repurposed Content</h2>
+            <div id="output">
+                <div class="loader" id="loader"></div> 
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2023 AI Content Repurposer
+    </footer>
+
+    <script>
+        const inputContent = document.getElementById('inputContent');
+        const outputFormat = document.getElementById('outputFormat');
+        const output = document.getElementById('output');
+        const loader = document.getElementById('loader');
+
+        function repurposeContent() {
+            const content = inputContent.value;
+            const format = outputFormat.value;
+
+            // Show loader and hide previous output
+            loader.style.display = 'block';
+            output.textContent = '';
+
+            // Simulate API call (replace with actual API integration)
+            setTimeout(() => {
+                loader.style.display = 'none';
+
+                let repurposedContent = '';
+
+                if (format === 'socialMediaPosts') {
+                    // Logic to generate social media posts from content
+                    repurposedContent = `
+                        **Post 1:** ${content.substring(0, 140)}... [Read More]
+                        **Post 2:** Key takeaway from the article: "${extractKeySentence(content)}" #ContentMarketing
+                        **Post 3:** Did you know...? ${extractInterestingFact(content)} #FunFact
+                    `;
+                } else if (format === 'blogOutline') {
+                    // Logic to generate blog outline from content
+                    repurposedContent = `
+                        ## Blog Post Outline:
+
+                        **I. Introduction:**
+                            * Hook: Briefly introduce the topic and grab the reader's attention.
+                            * Background: Provide context and relevant information.
+                            * Thesis Statement: Clearly state the main point of the blog post.
+
+                        **II. Body Paragraph 1:**
+                            * Topic Sentence: Introduce the first main point.
+                            * Supporting Evidence: Provide facts, statistics, examples, or anecdotes to support the topic sentence.
+                            * Transition Sentence: Connect the first main point to the second.
+
+                        **III. Body Paragraph 2:**
+                            * Topic Sentence: Introduce the second main point.
+                            * Supporting Evidence: Provide facts, statistics, examples, or anecdotes to support the topic sentence.
+                            * Transition Sentence: Connect the second main point to the third (if applicable). 
+
+                        **IV. Conclusion:**
+                            * Restate Thesis: Briefly summarize the main points of the blog post.
+                            * Call to Action: Encourage the reader to take a specific action (e.g., leave a comment, share the post, visit your website). 
+                    `;
+                } else if (format === 'emailNewsletter') {
+                    // Logic to generate email newsletter from content
+                    repurposedContent = `
+                        ## Subject: [Compelling Subject Line Related to Content]
+
+                        **Hi [Name],**
+
+                        [Engaging introduction summarizing the main point of the content]
+
+                        **Key takeaways from the article:**
+
+                        * ${extractKeySentence(content)}
+                        * ${extractInterestingFact(content)}
+
+                        [Call to action - e.g., Read the full article, visit your website, learn more]
+
+                        **Best regards,**
+
+                        [Your Name/Company Name]
+                    `;
+                } else if (format === 'shortVideoScript') {
+                    // Logic to generate short video script from content
+                    repurposedContent = `
+                        ## Short Video Script:
+
+                        **Scene 1:**
+                        * Visual: [Relevant image or video clip related to the content] 
+                        * Audio: "Have you ever wondered about [topic of content]? In this video, we'll explore..."
+
+                        **Scene 2:**
+                        * Visual: [Visual representation of key point 1]
+                        * Audio: "${extractKeySentence(content)}"
+
+                        **Scene 3:**
+                        * Visual: [Visual representation of key point 2]
+                        * Audio: "Another interesting fact is that ${extractInterestingFact(content)}"
+
+                        **Scene 4:**
+                        * Visual: [Call to action visual - e.g., website URL, subscribe button]
+                        * Audio: "For more information, visit [website/channel]."
+                    `;
+                }
+
+                output.textContent = repurposedContent;
+            }, 1500); // Simulate API call delay
+        }
+
+        // Helper functions (replace with more sophisticated NLP logic)
+        function extractKeySentence(text) {
+            // This is a placeholder, replace with actual key sentence extraction logic
+            const sentences = text.split('.');
+            return sentences[0]; 
+        }
+
+        function extractInterestingFact(text) {
+            // This is a placeholder, replace with actual fact extraction logic
+            const sentences = text.split('.');
+            return sentences[1];
+        }
+    </script>
+</body>
+</html>

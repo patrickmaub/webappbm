@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Fractal Explorer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        #controls {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        #canvas {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced Fractal Explorer</h1>
+    <div id="controls">
+        <div class="form-group">
+            <label for="fractalType">Select Fractal Type</label>
+            <select id="fractalType">
+                <option value="mandelbrot">Mandelbrot</option>
+                <option value="julia">Julia</option>
+                <option value="burning_ship">Burning Ship</option>
+                <option value="custom">Custom Algorithm</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="iterations">Iterations</label>
+            <input type="number" id="iterations" value="100" min="1" max="1000">
+        </div>
+        <div class="form-group">
+            <label for="zoom">Zoom Level</label>
+            <input type="number" id="zoom" value="1" step="0.1" min="0.1" max="10">
+        </div>
+        <div class="form-group">
+            <label for="xCenter">X Center</label>
+            <input type="number" id="xCenter" value="0" step="0.01">
+        </div>
+        <div class="form-group">
+            <label for="yCenter">Y Center</label>
+            <input type="number" id="yCenter" value="0" step="0.01">
+        </div>
+        <div class="form-group">
+            <label for="juliaCReal">Julia C Real (for Julia Set)</label>
+            <input type="number" id="juliaCReal" value="-0.7" step="0.01">
+        </div>
+        <div class="form-group">
+            <label for="juliaCImag">Julia C Imag (for Julia Set)</label>
+            <input type="number" id="juliaCImag" value="0.27015" step="0.01">
+        </div>
+        <div class="form-group">
+            <label for="customAlgorithm">Custom Algorithm (JavaScript Function)</label>
+            <textarea id="customAlgorithm" rows="4" placeholder="function custom(z, c, maxIter) { ... }"></textarea>
+        </div>
+        <button id="generate">Generate Fractal</button>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const controls = document.getElementById('controls');
+        const generateButton = document.getElementById('generate');
+
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+
+        function drawFractal(fractalType, iterations, zoom, xCenter, yCenter, juliaCReal, juliaCImag, customAlgorithm) {
+            const width = canvas.width;
+            const height = canvas.height;
+            const maxIter = iterations;
+            const zoomLevel = zoom;
+            const centerX = xCenter;
+            const centerY = yCenter;
+
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+
+            function mandelbrot(z, c, maxIter) {
+                let n = 0;
+                while (n < maxIter && z.re * z.re + z.im * z.im < 4) {
+                    const zr = z.re * z.re - z.im * z.im + c.re;
+                    const zi = 2 * z.re * z.im + c.im;
+                    z.re = zr;
+                    z.im = zi;
+                    n++;
+                }
+                return n;
+            }
+
+            function julia(z, c, maxIter) {
+                let n = 0;
+                while (n < maxIter && z.re * z.re + z.im * z.im < 4) {
+                    const zr = z.re * z.re - z.im * z.im + c.re;
+                    const zi = 2 * z.re * z.im + c.im;
+                    z.re = zr;
+                    z.im = zi;
+                    n++;
+                }
+                return n;
+            }
+
+            function burningShip(z, c, maxIter) {
+                let n = 0;
+                while (n < maxIter && z.re * z.re + z.im * z.im < 4) {
+                    const zr = Math.abs(z.re * z.re - z.im * z.im) + c.re;
+                    const zi = 2 * Math.abs(z.re * z.im) + c.im;
+                    z.re = zr;
+                    z.im = zi;
+                    n++;
+                }
+                return n;
+            }
+
+            function custom(z, c, maxIter) {
+                try {
+                    return eval(customAlgorithm)(z, c, maxIter);
+                } catch (e) {
+                    console.error('Custom algorithm error:', e);
+                    return 0;
+                }
+            }
+
+            const algorithms = {
+                mandelbrot,
+                julia,
+                burning_ship: burningShip,
+                custom
+            };
+
+            const algorithm = algorithms[fractalType];
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    const re = (x - width / 2) / (0.5 * zoomLevel * width) + centerX;
+                    const im = (y - height / 2) / (0.5 * zoomLevel * height) + centerY;
+                    const z = { re, im };
+                    const c = fractalType === 'julia' ? { re: juliaCReal, im: juliaCImag } : { re: re, im: im };
+                    const n = algorithm(z, c, maxIter);
+
+                    const color = n === maxIter ? [0, 0, 0] : [Math.floor(255 * n / maxIter), 0, 255 - Math.floor(255 * n / maxIter)];
+                    const index = (y * width + x) * 4;
+                    data[index] = color[0];
+                    data[index + 1] = color[1];
+                    data[index + 2] = color[2];
+                    data[index + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        generateButton.addEventListener('click', () => {
+            const fractalType = document.getElementById('fractalType').value;
+            const iterations = parseInt(document.getElementById('iterations').value);
+            const zoom = parseFloat(document.getElementById('zoom').value);
+            const xCenter = parseFloat(document.getElementById('xCenter').value);
+            const yCenter = parseFloat(document.getElementById('yCenter').value);
+            const juliaCReal = parseFloat(document.getElementById('juliaCReal').value);
+            const juliaCImag = parseFloat(document.getElementById('juliaCImag').value);
+            const customAlgorithm = document.getElementById('customAlgorithm').value;
+
+            drawFractal(fractalType, iterations, zoom, xCenter, yCenter, juliaCReal, juliaCImag, customAlgorithm);
+        });
+    </script>
+</body>
+</html>

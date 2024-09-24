@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Realistic Fluid Dynamics Simulator</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(20, 20, 20, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+        }
+        #ui label {
+            display: block;
+            margin-top: 5px;
+        }
+        #ui input[type=range] {
+            width: 150px;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <label>
+            Viscosity:
+            <input type="range" id="viscosity" min="0" max="0.1" step="0.001" value="0.0001">
+        </label>
+        <label>
+            Diffusion:
+            <input type="range" id="diffusion" min="0" max="0.1" step="0.001" value="0.0001">
+        </label>
+        <label>
+            Force:
+            <input type="range" id="force" min="100" max="1000" step="100" value="500">
+        </label>
+        <label>
+            Color:
+            <input type="color" id="color" value="#ff0000">
+        </label>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+    (() => {
+        // Get canvas and setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!ctx) {
+            alert('WebGL not supported in your browser.');
+            return;
+        }
+        resizeCanvas();
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.viewport(0, 0, canvas.width, canvas.height);
+        }
+
+        // Shader sources
+        const vertexShaderSource = `
+            attribute vec2 a_position;
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+            }
+        `;
+
+        const fragmentShaderSource = `
+            precision highp float;
+            uniform sampler2D u_texture;
+            uniform vec2 u_resolution;
+            void main() {
+                vec2 uv = gl_FragCoord.xy / u_resolution;
+                gl_FragColor = texture2D(u_texture, uv);
+            }
+        `;
+
+        // Compile shader
+        function compileShader(type, source) {
+            const shader = ctx.createShader(type);
+            ctx.shaderSource(shader, source);
+            ctx.compileShader(shader);
+            if (!ctx.getShaderParameter(shader, ctx.COMPILE_STATUS)) {
+                console.error('Shader compile failed with: ' + ctx.getShaderInfoLog(shader));
+                ctx.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        // Create program
+        function createProgram(vertexSrc, fragmentSrc) {
+            const vertexShader = compileShader(ctx.VERTEX_SHADER, vertexSrc);
+            const fragmentShader = compileShader(ctx.FRAGMENT_SHADER, fragmentSrc);
+            const program = ctx.createProgram();
+            ctx.attachShader(program, vertexShader);
+            ctx.attachShader(program, fragmentShader);
+            ctx.linkProgram(program);
+            if (!ctx.getProgramParameter(program, ctx.LINK_STATUS)) {
+                console.error('Program failed to link:', ctx.getProgramInfoLog(program));
+                ctx.deleteProgram(program);
+                return null;
+            }
+            return program;
+        }
+
+        // Set up full screen quad
+        const quadVertices = new Float32Array([
+            -1, -1,
+             1, -1,
+            -1,  1,
+            -1,  1,
+             1, -1,
+             1,  1
+        ]);
+
+        const vertexBuffer = ctx.createBuffer();
+        ctx.bindBuffer(ctx.ARRAY_BUFFER, vertexBuffer);
+        ctx.bufferData(ctx.ARRAY_BUFFER, quadVertices, ctx.STATIC_DRAW);
+
+        // Initialize shader program
+        const program = createProgram(vertexShaderSource, fragmentShaderSource);
+        ctx.useProgram(program);
+
+        // Look up attribute and uniform locations
+        const positionLocation = ctx.getAttribLocation(program, 'a_position');
+        const textureLocation = ctx.getUniformLocation(program, 'u_texture');
+        const resolutionLocation = ctx.getUniformLocation(program, 'u_resolution');
+
+        // Enable attribute
+        ctx.enableVertexAttribArray(positionLocation);
+        ctx.bindBuffer(ctx.ARRAY_BUFFER, vertexBuffer);
+        ctx.vertexAttribPointer(positionLocation, 2, ctx.FLOAT, false, 0, 0);
+
+        // Set uniform resolution
+        ctx.uniform2f(resolutionLocation, canvas.width, canvas.height);
+
+        // Framebuffer setup
+        function createTexture() {
+            const texture = ctx.createTexture();
+            ctx.bindTexture(ctx.TEXTURE_2D, texture);
+            ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, canvas.width, canvas.height, 0, ctx.RGBA, ctx.UNSIGNED_BYTE, null);
+            ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR);
+            ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR);
+            ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
+            ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
+            return texture;
+        }
+
+        function createFramebuffer(texture) {
+            const fb = ctx.createFramebuffer();
+            ctx.bindFramebuffer(ctx.FRAMEBUFFER, fb);
+            ctx.framebufferTexture2D(ctx.FRAMEBUFFER, ctx.COLOR_ATTACHMENT0, ctx.TEXTURE_2D, texture, 0);
+            return fb;
+        }
+
+        let textureA = createTexture();
+        let textureB = createTexture();
+        let fbA = createFramebuffer(textureA);
+        let fbB = createFramebuffer(textureB);
+
+        let currentSource = textureA;
+        let currentDest = textureB;
+
+        // Simulation parameters
+        let viscosity = parseFloat(document.getElementById('viscosity').value);
+        let diffusion = parseFloat(document.getElementById('diffusion').value);
+        let force = parseFloat(document.getElementById('force').value);
+        let color = hexToRgb(document.getElementById('color').value);
+
+        document.getElementById('viscosity').addEventListener('input', (e) => {
+            viscosity = parseFloat(e.target.value);
+        });
+        document.getElementById('diffusion').addEventListener('input', (e) => {
+            diffusion = parseFloat(e.target.value);
+        });
+        document.getElementById('force').addEventListener('input', (e) => {
+            force = parseFloat(e.target.value);
+        });
+        document.getElementById('color').addEventListener('input', (e) => {
+            color = hexToRgb(e.target.value);
+        });
+
+        // Utility functions
+        function hexToRgb(hex) {
+            let bigint = parseInt(hex.replace('#',''), 16);
+            let r = (bigint >> 16) & 255;
+            let g = (bigint >> 8) & 255;
+            let b = bigint & 255;
+            return [r / 255, g / 255, b / 255];
+        }
+
+        // Simulation state
+        let density = new Uint8Array(canvas.width * canvas.height * 4);
+        let velocity = { x: new Float32Array(canvas.width * canvas.height), y: new Float32Array(canvas.width * canvas.height) };
+
+        // Handle user interaction
+        let isMouseDown = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            inject(e.clientX, e.clientY, 10);
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                let dx = e.clientX - lastX;
+                let dy = e.clientY - lastY;
+                inject(e.clientX, e.clientY, 10, dx, dy);
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }
+        });
+
+        function inject(x, y, size, dx = 0, dy = 0) {
+            for (let i = -size; i < size; i++) {
+                for (let j = -size; j < size; j++) {
+                    let px = x + i;
+                    let py = y + j;
+                    if (px >= 0 && px < canvas.width && py >=0 && py < canvas.height) {
+                        let index = (py * canvas.width + px) * 4;
+                        density[index] = color[0] * 255;
+                        density[index + 1] = color[1] * 255;
+                        density[index + 2] = color[2] * 255;
+                        velocity.x[py * canvas.width + px] += dx / force;
+                        velocity.y[py * canvas.width + px] += dy / force;
+                    }
+                }
+            }
+        }
+
+        // Render loop
+        function render() {
+            updateSimulation();
+            draw();
+            requestAnimationFrame(render);
+        }
+
+        // Update simulation (placeholder for actual fluid dynamics)
+        function updateSimulation() {
+            // Simple placeholder: fade density and velocity
+            for (let i = 0; i < density.length; i++) {
+                density[i] *= 0.99;
+            }
+            for (let i = 0; i < velocity.x.length; i++) {
+                velocity.x[i] *= 0.99;
+                velocity.y[i] *= 0.99;
+            }
+        }
+
+        // Draw the density to the screen
+        function draw() {
+            ctx.bindTexture(ctx.TEXTURE_2D, currentSource);
+            ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, canvas);
+            ctx.drawArrays(ctx.TRIANGLES, 0, 6);
+        }
+
+        // Start rendering
+        render();
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Fourier Transform Visualizer and Synthesizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80%;
+            max-width: 1200px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #controls {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        #controls input, #controls button {
+            margin: 5px;
+        }
+        #controls label {
+            margin-right: 10px;
+        }
+        #controls button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #controls button:hover {
+            background-color: #0056b3;
+        }
+        #waveform, #spectrum {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Interactive Fourier Transform Visualizer and Synthesizer</h1>
+        <div id="controls">
+            <div>
+                <label for="frequency">Frequency (Hz):</label>
+                <input type="number" id="frequency" value="1" min="1" max="1000" step="1">
+            </div>
+            <div>
+                <label for="amplitude">Amplitude:</label>
+                <input type="number" id="amplitude" value="1" min="0" max="10" step="0.1">
+            </div>
+            <div>
+                <label for="phase">Phase (degrees):</label>
+                <input type="number" id="phase" value="0" min="-180" max="180" step="1">
+            </div>
+            <button id="generate">Generate Signal</button>
+            <button id="play">Play Sound</button>
+            <button id="stop">Stop Sound</button>
+        </div>
+        <div id="waveform"></div>
+        <div id="spectrum"></div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        let oscillator = null;
+        let analyser = context.createAnalyser();
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const frequencyData = new Uint8Array(bufferLength);
+
+        const waveform = d3.select("#waveform").append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", "0 0 800 300");
+
+        const spectrum = d3.select("#spectrum").append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", "0 0 800 300");
+
+        const x = d3.scaleLinear().domain([0, 1]).range([0, 800]);
+        const y = d3.scaleLinear().domain([-1, 1]).range([300, 0]);
+
+        const line = d3.line()
+            .x((d, i) => x(i / 100))
+            .y(d => y(d));
+
+        const waveformPath = waveform.append("path")
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", 2);
+
+        const spectrumBars = spectrum.selectAll("rect")
+            .data(frequencyData)
+            .enter()
+            .append("rect")
+            .attr("x", (d, i) => i * (800 / bufferLength))
+            .attr("width", 800 / bufferLength)
+            .attr("fill", "steelblue");
+
+        function updateWaveform(data) {
+            waveformPath.datum(data).attr("d", line);
+        }
+
+        function updateSpectrum() {
+            analyser.getByteFrequencyData(frequencyData);
+            spectrumBars.data(frequencyData)
+                .attr("y", d => 300 - d)
+                .attr("height", d => d);
+        }
+
+        function generateSignal() {
+            const frequency = parseFloat(document.getElementById("frequency").value);
+            const amplitude = parseFloat(document.getElementById("amplitude").value);
+            const phase = parseFloat(document.getElementById("phase").value) * Math.PI / 180;
+
+            const data = Array.from({ length: 100 }, (_, i) => {
+                const t = i / 100;
+                return amplitude * Math.sin(2 * Math.PI * frequency * t + phase);
+            });
+
+            updateWaveform(data);
+
+            if (oscillator) {
+                oscillator.disconnect();
+            }
+
+            oscillator = context.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+            oscillator.connect(analyser);
+            analyser.connect(context.destination);
+            oscillator.start();
+        }
+
+        function playSound() {
+            if (oscillator) {
+                oscillator.start();
+            }
+        }
+
+        function stopSound() {
+            if (oscillator) {
+                oscillator.stop();
+            }
+        }
+
+        document.getElementById("generate").addEventListener("click", generateSignal);
+        document.getElementById("play").addEventListener("click", playSound);
+        document.getElementById("stop").addEventListener("click", stopSound);
+
+        setInterval(updateSpectrum, 1000 / 60);
+    </script>
+</body>
+</html>

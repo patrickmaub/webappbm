@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Terrain Generator with Erosion Simulation</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            display: block;
+            background: #000;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            z-index: 10;
+        }
+        #controls input, #controls button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="terrainCanvas"></canvas>
+    <div id="controls">
+        <label for="seed">Seed:</label>
+        <input type="text" id="seed" value="12345">
+        <label for="octaves">Octaves:</label>
+        <input type="number" id="octaves" value="5" min="1" max="10">
+        <label for="persistence">Persistence:</label>
+        <input type="range" id="persistence" min="0" max="1" step="0.01" value="0.5">
+        <label for="lacunarity">Lacunarity:</label>
+        <input type="range" id="lacunarity" min="1" max="3" step="0.1" value="2">
+        <label for="erosionIterations">Erosion Iterations:</label>
+        <input type="number" id="erosionIterations" value="100000" min="1000" max="1000000">
+        <button id="generateBtn">Generate Terrain</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('terrainCanvas');
+        const ctx = canvas.getContext('2d');
+        const seedInput = document.getElementById('seed');
+        const octavesInput = document.getElementById('octaves');
+        const persistenceInput = document.getElementById('persistence');
+        const lacunarityInput = document.getElementById('lacunarity');
+        const erosionIterationsInput = document.getElementById('erosionIterations');
+        const generateBtn = document.getElementById('generateBtn');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class PerlinNoise {
+            constructor(seed) {
+                this.seed = seed;
+                this.permutation = this.generatePermutation();
+            }
+
+            generatePermutation() {
+                const p = new Array(256);
+                for (let i = 0; i < 256; i++) {
+                    p[i] = i;
+                }
+                for (let i = 255; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [p[i], p[j]] = [p[j], p[i]];
+                }
+                return p.concat(p);
+            }
+
+            fade(t) {
+                return t * t * t * (t * (t * 6 - 15) + 10);
+            }
+
+            lerp(t, a, b) {
+                return a + t * (b - a);
+            }
+
+            grad(hash, x, y, z) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y;
+                const v = h < 4 ? y : h === 12 || h === 14 ? x : z;
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            }
+
+            noise(x, y, z) {
+                const X = Math.floor(x) & 255;
+                const Y = Math.floor(y) & 255;
+                const Z = Math.floor(z) & 255;
+
+                x -= Math.floor(x);
+                y -= Math.floor(y);
+                z -= Math.floor(z);
+
+                const u = this.fade(x);
+                const v = this.fade(y);
+                const w = this.fade(z);
+
+                const A = this.permutation[X] + Y;
+                const AA = this.permutation[A] + Z;
+                const AB = this.permutation[A + 1] + Z;
+                const B = this.permutation[X + 1] + Y;
+                const BA = this.permutation[B] + Z;
+                const BB = this.permutation[B + 1] + Z;
+
+                return this.lerp(w, this.lerp(v, this.lerp(u, this.grad(this.permutation[AA], x, y, z),
+                    this.grad(this.permutation[BA], x - 1, y, z)),
+                    this.lerp(u, this.grad(this.permutation[AB], x, y - 1, z),
+                        this.grad(this.permutation[BB], x - 1, y - 1, z))),
+                    this.lerp(v, this.lerp(u, this.grad(this.permutation[AA + 1], x, y, z - 1),
+                        this.grad(this.permutation[BA + 1], x - 1, y, z - 1)),
+                        this.lerp(u, this.grad(this.permutation[AB + 1], x, y - 1, z - 1),
+                            this.grad(this.permutation[BB + 1], x - 1, y - 1, z - 1))));
+            }
+        }
+
+        function generateTerrain(seed, octaves, persistence, lacunarity) {
+            const perlin = new PerlinNoise(seed);
+            const width = canvas.width;
+            const height = canvas.height;
+            const data = ctx.createImageData(width, height);
+            const buffer = new Uint32Array(data.data.buffer);
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let amplitude = 1;
+                    let frequency = 1;
+                    let noiseHeight = 0;
+
+                    for (let i = 0; i < octaves; i++) {
+                        const sampleX = x / width * frequency;
+                        const sampleY = y / height * frequency;
+                        const perlinValue = perlin.noise(sampleX, sampleY, 0);
+                        noiseHeight += perlinValue * amplitude;
+                        amplitude *= persistence;
+                        frequency *= lacunarity;
+                    }
+
+                    const normalizedHeight = (noiseHeight + 1) / 2;
+                    const color = Math.floor(normalizedHeight * 255);
+                    buffer[y * width + x] = (255 << 24) | (color << 16) | (color << 8) | color;
+                }
+            }
+
+            ctx.putImageData(data, 0, 0);
+        }
+
+        function simulateErosion(iterations) {
+            const width = canvas.width;
+            const height = canvas.height;
+            const data = ctx.getImageData(0, 0, width, height);
+            const buffer = new Uint32Array(data.data.buffer);
+
+            for (let i = 0; i < iterations; i++) {
+                const x = Math.floor(Math.random() * width);
+                const y = Math.floor(Math.random() * height);
+                const idx = y * width + x;
+                const height = buffer[idx] & 0xFF;
+
+                const directions = [
+                    [0, 1], [1, 0], [0, -1], [-1, 0],
+                    [1, 1], [1, -1], [-1, 1], [-1, -1]
+                ];
+
+                let lowestHeight = height;
+                let lowestIdx = idx;
+
+                for (const [dx, dy] of directions) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        const nIdx = ny * width + nx;
+                        const nHeight = buffer[nIdx] & 0xFF;
+                        if (nHeight < lowestHeight) {
+                            lowestHeight = nHeight;
+                            lowestIdx = nIdx;
+                        }
+                    }
+                }
+
+                if (lowestIdx !== idx) {
+                    const newHeight = Math.floor((height + lowestHeight) / 2);
+                    buffer[idx] = (255 << 24) | (newHeight << 16) | (newHeight << 8) | newHeight;
+                    buffer[lowestIdx] = (255 << 24) | (newHeight << 16) | (newHeight << 8) | newHeight;
+                }
+            }
+
+            ctx.putImageData(data, 0, 0);
+        }
+
+        generateBtn.addEventListener('click', () => {
+            const seed = seedInput.value;
+            const octaves = parseInt(octavesInput.value);
+            const persistence = parseFloat(persistenceInput.value);
+            const lacunarity = parseFloat(lacunarityInput.value);
+            const erosionIterations = parseInt(erosionIterationsInput.value);
+
+            generateTerrain(seed, octaves, persistence, lacunarity);
+            simulateErosion(erosionIterations);
+        });
+
+        // Initial generation
+        generateBtn.click();
+    </script>
+</body>
+</html>

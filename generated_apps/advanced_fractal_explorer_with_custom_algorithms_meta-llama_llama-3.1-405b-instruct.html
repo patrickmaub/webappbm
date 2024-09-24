@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Fractal Explorer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            border: 1px solid black;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #ffffff;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        #algorithm-select {
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="controls">
+        <h2>Fractal Explorer Controls</h2>
+        <label for="algorithm-select">Select Algorithm:</label>
+        <select id="algorithm-select">
+            <option value="mandelbrot">Mandelbrot Set</option>
+            <option value="julia">Julia Set</option>
+            <option value="burning-ship">Burning Ship Fractal</option>
+            <option value="custom">Custom Algorithm</option>
+        </select>
+        <br>
+        <label for="zoom">Zoom:</label>
+        <input type="range" id="zoom" min="0.1" max="10" step="0.1" value="1">
+        <br>
+        <label for="pan-x">Pan X:</label>
+        <input type="range" id="pan-x" min="-2" max="2" step="0.1" value="0">
+        <br>
+        <label for="pan-y">Pan Y:</label>
+        <input type="range" id="pan-y" min="-2" max="2" step="0.1" value="0">
+        <br>
+        <label for="max-iterations">Max Iterations:</label>
+        <input type="number" id="max-iterations" min="1" max="1000" step="1" value="100">
+        <br>
+        <button id="render-button">Render Fractal</button>
+    </div>
+
+    <script>
+        // Get canvas and context
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Get control elements
+        const algorithmSelect = document.getElementById('algorithm-select');
+        const zoomInput = document.getElementById('zoom');
+        const panXInput = document.getElementById('pan-x');
+        const panYInput = document.getElementById('pan-y');
+        const maxIterationsInput = document.getElementById('max-iterations');
+        const renderButton = document.getElementById('render-button');
+
+        // Set up fractal rendering functions
+        function mandelbrot(x, y, maxIterations) {
+            let zx = 0;
+            let zy = 0;
+            let cx = x;
+            let cy = y;
+            for (let i = 0; i < maxIterations; i++) {
+                let temp = zx * zx - zy * zy + cx;
+                zy = 2 * zx * zy + cy;
+                zx = temp;
+                if (zx * zx + zy * zy > 4) {
+                    return i;
+                }
+            }
+            return maxIterations;
+        }
+
+        function julia(x, y, maxIterations) {
+            let zx = x;
+            let zy = y;
+            let cx = -0.8;
+            let cy = 0.156;
+            for (let i = 0; i < maxIterations; i++) {
+                let temp = zx * zx - zy * zy + cx;
+                zy = 2 * zx * zy + cy;
+                zx = temp;
+                if (zx * zx + zy * zy > 4) {
+                    return i;
+                }
+            }
+            return maxIterations;
+        }
+
+        function burningShip(x, y, maxIterations) {
+            let zx = 0;
+            let zy = 0;
+            let cx = x;
+            let cy = y;
+            for (let i = 0; i < maxIterations; i++) {
+                let temp = zx * zx - zy * zy + cx;
+                zy = 2 * Math.abs(zx * zy) + cy;
+                zx = temp;
+                if (zx * zx + zy * zy > 4) {
+                    return i;
+                }
+            }
+            return maxIterations;
+        }
+
+        function customAlgorithm(x, y, maxIterations) {
+            // Example custom algorithm: a simple polynomial
+            let zx = x;
+            let zy = y;
+            for (let i = 0; i < maxIterations; i++) {
+                zx = zx * zx + zy * zy - 0.5;
+                zy = 2 * zx * zy + 0.1;
+                if (zx * zx + zy * zy > 4) {
+                    return i;
+                }
+            }
+            return maxIterations;
+        }
+
+        // Set up rendering function
+        function renderFractal(algorithm, zoom, panX, panY, maxIterations) {
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    const fractalX = (x - width / 2) * zoom / width + panX;
+                    const fractalY = (y - height / 2) * zoom / height + panY;
+                    let iterations;
+                    switch (algorithm) {
+                        case 'mandelbrot':
+                            iterations = mandelbrot(fractalX, fractalY, maxIterations);
+                            break;
+                        case 'julia':
+                            iterations = julia(fractalX, fractalY, maxIterations);
+                            break;
+                        case 'burning-ship':
+                            iterations = burningShip(fractalX, fractalY, maxIterations);
+                            break;
+                        case 'custom':
+                            iterations = customAlgorithm(fractalX, fractalY, maxIterations);
+                            break;
+                    }
+                    const color = iterations / maxIterations * 255;
+                    ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+
+        // Set up event listeners
+        renderButton.addEventListener('click', () => {
+            const algorithm = algorithmSelect.value;
+            const zoom = parseFloat(zoomInput.value);
+            const panX = parseFloat(panXInput.value);
+            const panY = parseFloat(panYInput.value);
+            const maxIterations = parseInt(maxIterationsInput.value);
+            renderFractal(algorithm, zoom, panX, panY, maxIterations);
+        });
+
+        // Initial render
+        renderFractal('mandelbrot', 1, 0, 0, 100);
+    </script>
+</body>
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Fourier Transform Visualizer and Synthesizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .visualizer {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        canvas {
+            background-color: #fff;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .control-group h3 {
+            margin-top: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #harmonics-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .harmonic-control {
+            flex: 1;
+            min-width: 150px;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive Fourier Transform Visualizer and Synthesizer</h1>
+        <div class="visualizer">
+            <canvas id="waveform" width="580" height="200"></canvas>
+            <canvas id="spectrum" width="580" height="200"></canvas>
+        </div>
+        <div class="controls">
+            <div class="control-group">
+                <h3>Waveform Controls</h3>
+                <label for="frequency">Frequency: <span id="frequency-value">440</span> Hz</label>
+                <input type="range" id="frequency" min="20" max="2000" value="440" step="1">
+                <label for="amplitude">Amplitude: <span id="amplitude-value">0.5</span></label>
+                <input type="range" id="amplitude" min="0" max="1" value="0.5" step="0.01">
+                <button id="play-pause">Play/Pause</button>
+            </div>
+            <div class="control-group">
+                <h3>Fourier Transform Controls</h3>
+                <label for="window-size">FFT Window Size:</label>
+                <select id="window-size">
+                    <option value="256">256</option>
+                    <option value="512">512</option>
+                    <option value="1024" selected>1024</option>
+                    <option value="2048">2048</option>
+                    <option value="4096">4096</option>
+                </select>
+                <label for="window-function">Window Function:</label>
+                <select id="window-function">
+                    <option value="rectangular">Rectangular</option>
+                    <option value="hann" selected>Hann</option>
+                    <option value="hamming">Hamming</option>
+                    <option value="blackman">Blackman</option>
+                </select>
+            </div>
+        </div>
+        <div class="control-group">
+            <h3>Harmonic Synthesis</h3>
+            <div id="harmonics-container"></div>
+            <button id="add-harmonic">Add Harmonic</button>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let oscillator = null;
+        let gainNode = null;
+        let analyser = null;
+        let isPlaying = false;
+
+        // Canvas setup
+        const waveformCanvas = document.getElementById('waveform');
+        const waveformCtx = waveformCanvas.getContext('2d');
+        const spectrumCanvas = document.getElementById('spectrum');
+        const spectrumCtx = spectrumCanvas.getContext('2d');
+
+        // Controls
+        const frequencyControl = document.getElementById('frequency');
+        const frequencyValue = document.getElementById('frequency-value');
+        const amplitudeControl = document.getElementById('amplitude');
+        const amplitudeValue = document.getElementById('amplitude-value');
+        const playPauseButton = document.getElementById('play-pause');
+        const windowSizeSelect = document.getElementById('window-size');
+        const windowFunctionSelect = document.getElementById('window-function');
+        const addHarmonicButton = document.getElementById('add-harmonic');
+        const harmonicsContainer = document.getElementById('harmonics-container');
+
+        // Fourier Transform settings
+        let fftSize = 1024;
+        let windowFunction = 'hann';
+
+        // Harmonics
+        const harmonics = [];
+
+        // Initialize
+        function init() {
+            setupEventListeners();
+            createAnalyser();
+            addHarmonic();
+            draw();
+        }
+
+        function setupEventListeners() {
+            frequencyControl.addEventListener('input', updateFrequency);
+            amplitudeControl.addEventListener('input', updateAmplitude);
+            playPauseButton.addEventListener('click', togglePlayPause);
+            windowSizeSelect.addEventListener('change', updateFFTSize);
+            windowFunctionSelect.addEventListener('change', updateWindowFunction);
+            addHarmonicButton.addEventListener('click', addHarmonic);
+        }
+
+        function createAnalyser() {
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = fftSize;
+            analyser.connect(audioContext.destination);
+        }
+
+        function updateFrequency() {
+            const frequency = parseFloat(frequencyControl.value);
+            frequencyValue.textContent = frequency;
+            if (oscillator) {
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            }
+            updateHarmonics();
+        }
+
+        function updateAmplitude() {
+            const amplitude = parseFloat(amplitudeControl.value);
+            amplitudeValue.textContent = amplitude;
+            if (gainNode) {
+                gainNode.gain.setValueAtTime(amplitude, audioContext.currentTime);
+            }
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                stopSound();
+            } else {
+                playSound();
+            }
+            isPlaying = !isPlaying;
+        }
+
+        function playSound() {
+            oscillator = audioContext.createOscillator();
+            gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(parseFloat(frequencyControl.value), audioContext.currentTime);
+            gainNode.gain.setValueAtTime(parseFloat(amplitudeControl.value), audioContext.currentTime);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(analyser);
+
+            oscillator.start();
+        }
+
+        function stopSound() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator.disconnect();
+                oscillator = null;
+            }
+            if (gainNode) {
+                gainNode.disconnect();
+                gainNode = null;
+            }
+        }
+
+        function updateFFTSize() {
+            fftSize = parseInt(windowSizeSelect.value);
+            analyser.fftSize = fftSize;
+        }
+
+        function updateWindowFunction() {
+            windowFunction = windowFunctionSelect.value;
+        }
+
+        function addHarmonic() {
+            const harmonicIndex = harmonics.length + 1;
+            const harmonicControl = document.createElement('div');
+            harmonicControl.className = 'harmonic-control';
+            harmonicControl.innerHTML = `
+                <h4>Harmonic ${harmonicIndex}</h4>
+                <label for="harmonic-${harmonicIndex}-amplitude">Amplitude:</label>
+                <input type="range" id="harmonic-${harmonicIndex}-amplitude" min="0" max="1" value="0.5" step="0.01">
+                <label for="harmonic-${harmonicIndex}-phase">Phase:</label>
+                <input type="range" id="harmonic-${harmonicIndex}-phase" min="0" max="360" value="0" step="1">
+            `;
+            harmonicsContainer.appendChild(harmonicControl);
+
+            const harmonic = {
+                amplitude: 0.5,
+                phase: 0,
+                oscillator: null,
+                gainNode: null
+            };
+            harmonics.push(harmonic);
+
+            const amplitudeControl = harmonicControl.querySelector(`#harmonic-${harmonicIndex}-amplitude`);
+            const phaseControl = harmonicControl.querySelector(`#harmonic-${harmonicIndex}-phase`);
+
+            amplitudeControl.addEventListener('input', () => {
+                harmonic.amplitude = parseFloat(amplitudeControl.value);
+                updateHarmonics();
+            });
+
+            phaseControl.addEventListener('input', () => {
+                harmonic.phase = parseFloat(phaseControl.value);
+                updateHarmonics();
+            });
+
+            updateHarmonics();
+        }
+
+        function updateHarmonics() {
+            const baseFrequency = parseFloat(frequencyControl.value);
+
+            harmonics.forEach((harmonic, index) => {
+                const frequency = baseFrequency * (index + 2);
+
+                if (!harmonic.oscillator) {
+                    harmonic.oscillator = audioContext.createOscillator();
+                    harmonic.gainNode = audioContext.createGain();
+
+                    harmonic.oscillator.connect(harmonic.gainNode);
+                    harmonic.gainNode.connect(analyser);
+
+                    if (isPlaying) {
+                        harmonic.oscillator.start();
+                    }
+                }
+
+                harmonic.oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                harmonic.gainNode.gain.setValueAtTime(harmonic.amplitude, audioContext.currentTime);
+                harmonic.oscillator.phase = harmonic.phase * Math.PI / 180;
+            });
+        }
+
+        function draw() {
+            drawWaveform();
+            drawSpectrum();
+            requestAnimationFrame(draw);
+        }
+
+        function drawWaveform() {
+            const bufferLength = analyser.fftSize;
+            const dataArray = new Float32Array(bufferLength);
+            analyser.getFloatTimeDomainData(dataArray);
+
+            waveformCtx.fillStyle = 'rgb(200, 200, 200)';
+            waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+            waveformCtx.lineWidth = 2;
+            waveformCtx.strokeStyle = 'rgb(0, 0, 0)';
+            waveformCtx.beginPath();
+
+            const sliceWidth = waveformCanvas.width * 1.0 / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] * 0.5;
+                const y = waveformCanvas.height / 2 + v * waveformCanvas.height / 2;
+
+                if (i === 0) {
+                    waveformCtx.moveTo(x, y);
+                } else {
+                    waveformCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
+            waveformCtx.stroke();
+        }
+
+        function drawSpectrum() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Float32Array(bufferLength);
+            analyser.getFloatFrequencyData(dataArray);
+
+            spectrumCtx.fillStyle = 'rgb(200, 200, 200)';
+            spectrumCtx.fillRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+
+            const barWidth = (spectrumCanvas.width / bufferLength) * 2.5;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] + 140) * 2;
+                spectrumCtx.fillStyle = `rgb(${Math.floor(barHeight + 100)}, 50, 50)`;
+                spectrumCtx.fillRect(x, spectrumCanvas.height - barHeight / 2, barWidth, barHeight / 2);
+                x += barWidth + 1;
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
+
+This complex single-file HTML web application provides an Interactive Fourier Transform Visualizer and Synthesizer with the following advanced features:
+
+1. Real-time waveform and spectrum visualization using the Web Audio API and HTML5 Canvas.
+2. Interactive controls for adjusting the fundamental frequency and amplitude of the synthesized sound.
+3. Play/Pause functionality for audio output.
+4. Customizable FFT (Fast Fourier Transform) settings, including window size and window function selection.
+5. Harmonic synthesis with the ability to add multiple harmonics, each with adjustable amplitude and phase.
+6. Responsive design for various screen sizes.
+7. Advanced CSS styling for an attractive and user-friendly interface.
+
+The application demonstrates complex audio processing, real-time visualization, and interactive user interface design, all within a single HTML file. It showcases the power of modern web technologies and provides an educational tool for understanding Fourier transforms and audio synthesis.

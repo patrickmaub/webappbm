@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Terrain Generator with Erosion Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            border: 1px solid black;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #ffffff;
+            padding: 10px;
+            border: 1px solid black;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        #controls label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        #controls input[type="range"] {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="controls">
+        <label for="seed">Seed:</label>
+        <input type="number" id="seed" value="12345">
+        <label for="octaves">Octaves:</label>
+        <input type="range" id="octaves" min="1" max="10" value="5">
+        <label for="scale">Scale:</label>
+        <input type="range" id="scale" min="0.1" max="10" value="1" step="0.1">
+        <label for="erosion-strength">Erosion Strength:</label>
+        <input type="range" id="erosion-strength" min="0" max="1" value="0.5" step="0.01">
+        <label for="erosion-iterations">Erosion Iterations:</label>
+        <input type="range" id="erosion-iterations" min="1" max="100" value="10">
+        <button id="generate">Generate</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const controls = document.getElementById('controls');
+        const seedInput = document.getElementById('seed');
+        const octavesInput = document.getElementById('octaves');
+        const scaleInput = document.getElementById('scale');
+        const erosionStrengthInput = document.getElementById('erosion-strength');
+        const erosionIterationsInput = document.getElementById('erosion-iterations');
+        const generateButton = document.getElementById('generate');
+
+        let seed = parseInt(seedInput.value);
+        let octaves = parseInt(octavesInput.value);
+        let scale = parseFloat(scaleInput.value);
+        let erosionStrength = parseFloat(erosionStrengthInput.value);
+        let erosionIterations = parseInt(erosionIterationsInput.value);
+
+        function generateTerrain() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const terrain = new Array(width).fill(0).map(() => new Array(height).fill(0));
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    const frequency = 16 / octaves;
+                    const amplitude = 1 / (1 + Math.pow(2, -octaves));
+                    let value = 0;
+
+                    for (let i = 0; i < octaves; i++) {
+                        const freq = frequency * Math.pow(2, i);
+                        const amp = amplitude * Math.pow(2, -i);
+                        const noise = perlinNoise(x / freq, y / freq, seed);
+                        value += amp * noise;
+                    }
+
+                    terrain[x][y] = value * scale;
+                }
+            }
+
+            return terrain;
+        }
+
+        function erodeTerrain(terrain) {
+            const width = terrain.length;
+            const height = terrain[0].length;
+            const erodedTerrain = new Array(width).fill(0).map(() => new Array(height).fill(0));
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let value = terrain[x][y];
+
+                    for (let i = 0; i < erosionIterations; i++) {
+                        const neighbors = [
+                            { x: x - 1, y: y },
+                            { x: x + 1, y: y },
+                            { x: x, y: y - 1 },
+                            { x: x, y: y + 1 },
+                        ];
+
+                        for (const neighbor of neighbors) {
+                            if (neighbor.x >= 0 && neighbor.x < width && neighbor.y >= 0 && neighbor.y < height) {
+                                const neighborValue = terrain[neighbor.x][neighbor.y];
+                                value = Math.min(value, neighborValue + erosionStrength);
+                            }
+                        }
+                    }
+
+                    erodedTerrain[x][y] = value;
+                }
+            }
+
+            return erodedTerrain;
+        }
+
+        function perlinNoise(x, y, seed) {
+            const p = new Array(256).fill(0).map((_, i) => {
+                const n = Math.sin((i + seed) * 0.0625);
+                return n > 0 ? Math.floor(n * 256) : -Math.floor(-n * 256);
+            });
+
+            const X = Math.floor(x);
+            const Y = Math.floor(y);
+            const x0 = x - X;
+            const y0 = y - Y;
+            const x1 = x0 - 1;
+            const y1 = y0 - 1;
+
+            const n00 = p[(X + p[Y % 256]) % 256];
+            const n10 = p[(X + 1 + p[Y % 256]) % 256];
+            const n01 = p[(X + p[(Y + 1) % 256]) % 256];
+            const n11 = p[(X + 1 + p[(Y + 1) % 256]) % 256];
+
+            const t = x0 * (1 - x0);
+            const u = y0 * (1 - y0);
+
+            const nx0 = n00 * (1 - x0) + n10 * x0;
+            const nx1 = n01 * (1 - x0) + n11 * x0;
+
+            return nx0 * (1 - y0) + nx1 * y0 + (n00 * t * (1 - y0) + n10 * t * y0 + n01 * u * (1 - x0) + n11 * u * x0);
+        }
+
+        function drawTerrain(terrain) {
+            const width = terrain.length;
+            const height = terrain[0].length;
+
+            ctx.clearRect(0, 0, width, height);
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    const value = terrain[x][y];
+                    const color = `hsl(${value * 360}, 100%, 50%)`;
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+
+        generateButton.addEventListener('click', () => {
+            seed = parseInt(seedInput.value);
+            octaves = parseInt(octavesInput.value);
+            scale = parseFloat(scaleInput.value);
+            erosionStrength = parseFloat(erosionStrengthInput.value);
+            erosionIterations = parseInt(erosionIterationsInput.value);
+
+            const terrain = generateTerrain();
+            const erodedTerrain = erodeTerrain(terrain);
+            drawTerrain(erodedTerrain);
+        });
+
+        const initialTerrain = generateTerrain();
+        const initialErodedTerrain = erodeTerrain(initialTerrain);
+        drawTerrain(initialErodedTerrain);
+    </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realistic Fluid Dynamics Simulator</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #222;
+        }
+        #canvas {
+            border: 2px solid #777;
+        }
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        #controls label, #controls button {
+            display: block;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label>
+            Density: <input type="range" id="density" min="0.1" max="5" step="0.1" value="1">
+        </label>
+        <label>
+            Viscosity: <input type="range" id="viscosity" min="0.1" max="5" step="0.1" value="1">
+        </label>
+        <button id="resetBtn">Reset</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        // Fluid Dynamics Simulation Code
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const N = 128;
+        const size = N + 2;
+        const dt = 0.1;
+
+        let density = 1;
+        let viscosity = 1;
+
+        let u = new Array(size * size).fill(0);
+        let v = new Array(size * size).fill(0);
+        let u_prev = new Array(size * size).fill(0);
+        let v_prev = new Array(size * size).fill(0);
+        let dens = new Array(size * size).fill(0);
+        let dens_prev = new Array(size * size).fill(0);
+
+        function IX(x, y) {
+            return x + (y * size);
+        }
+
+        function add_source(x, s, dt) {
+            for (let i = 0; i < size * size; i++) x[i] += dt * s[i];
+        }
+
+        function diffuse(b, x, x0, diff, dt) {
+            let a = dt * diff * N * N;
+            lin_solve(b, x, x0, a, 1 + 4 * a);
+        }
+
+        function advect(b, d, d0, u, v, dt) {
+            let i0, j0, i1, j1;
+            let x, y, s0, t0, s1, t1, tmp1, tmp2, tmp3, tmp4;
+            let dt0 = dt * N;
+
+            for (let i = 1; i <= N; i++) {
+                for (let j = 1; j <= N; j++) {
+                    tmp1 = dt0 * u[IX(i, j)];
+                    tmp2 = dt0 * v[IX(i, j)];
+                    x = i - tmp1;
+                    y = j - tmp2;
+                    if (x < 0.5) x = 0.5;
+                    if (x > N + 0.5) x = N + 0.5;
+                    i0 = Math.floor(x);
+                    i1 = i0 + 1;
+                    if (y < 0.5) y = 0.5;
+                    if (y > N + 0.5) y = N + 0.5;
+                    j0 = Math.floor(y);
+                    j1 = j0 + 1;
+
+                    s1 = x - i0;
+                    s0 = 1 - s1;
+                    t1 = y - j0;
+                    t0 = 1 - t1;
+
+                    d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
+                                  s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
+                }
+            }
+            set_bnd(b, d);
+        }
+
+        function project(u, v, p, div) {
+            for (let i = 1; i <= N; i++) {
+                for (let j = 1; j <= N; j++) {
+                    div[IX(i, j)] = -0.5 * (u[IX(i + 1, j)] - u[IX(i - 1, j)] +
+                                            v[IX(i, j + 1)] - v[IX(i, j - 1)]) / N;
+                    p[IX(i, j)] = 0;
+                }
+            }
+            set_bnd(0, div);
+            set_bnd(0, p);
+            lin_solve(0, p, div, 1, 4);
+
+            for (let i = 1; i <= N; i++) {
+                for (let j = 1; j <= N; j++) {
+                    u[IX(i, j)] -= 0.5 * N * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
+                    v[IX(i, j)] -= 0.5 * N * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
+                }
+            }
+            set_bnd(1, u);
+            set_bnd(2, v);
+        }
+
+        function lin_solve(b, x, x0, a, c) {
+            for (let k = 0; k < 20; k++) {
+                for (let i = 1; i <= N; i++) {
+                    for (let j = 1; j <= N; j++) {
+                        x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] +
+                                                            x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
+                    }
+                }
+                set_bnd(b, x);
+            }
+        }
+
+        function set_bnd(b, x) {
+            for (let i = 1; i <= N; i++) {
+                x[IX(0, i)] = b === 1 ? -x[IX(1, i)] : x[IX(1, i)];
+                x[IX(N + 1, i)] = b === 1 ? -x[IX(N, i)] : x[IX(N, i)];
+                x[IX(i, 0)] = b === 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
+                x[IX(i, N + 1)] = b === 2 ? -x[IX(i, N)] : x[IX(i, N)];
+            }
+            x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
+            x[IX(0, N + 1)] = 0.5 * (x[IX(1, N + 1)] + x[IX(0, N)]);
+            x[IX(N + 1, 0)] = 0.5 * (x[IX(N, 0)] + x[IX(N + 1, 1)]);
+            x[IX(N + 1, N + 1)] = 0.5 * (x[IX(N, N + 1)] + x[IX(N + 1, N)]);
+        }
+
+        function step() {
+            add_source(dens, dens_prev, dt);
+            add_source(u, u_prev, dt);
+            add_source(v, v_prev, dt);
+
+            [u_prev, u] = [u, u_prev];
+            diffuse(1, u, u_prev, viscosity, dt);
+
+            [v_prev, v] = [v, v_prev];
+            diffuse(2, v, v_prev, viscosity, dt);
+
+            project(u, v, u_prev, v_prev);
+
+            [u_prev, u] = [u, u_prev];
+            [v_prev, v] = [v, v_prev];
+            advect(1, u, u_prev, u_prev, v_prev, dt);
+            advect(2, v, v_prev, u_prev, v_prev, dt);
+
+            project(u, v, u_prev, v_prev);
+
+            [dens_prev, dens] = [dens, dens_prev];
+            diffuse(0, dens, dens_prev, density, dt);
+
+            [dens_prev, dens] = [dens, dens_prev];
+            advect(0, dens, dens_prev, u, v, dt);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let cellWidth = canvas.width / N;
+            let cellHeight = canvas.height / N;
+
+            for (let i = 1; i <= N; i++) {
+                for (let j = 1; j <= N; j++) {
+                    let d = dens[IX(i, j)];
+                    ctx.fillStyle = `rgba(0, 0, 255, ${d})`;
+                    ctx.fillRect((i - 1) * cellWidth, (j - 1) * cellHeight, cellWidth, cellHeight);
+                }
+            }
+        }
+
+        function update() {
+            step();
+            render();
+            requestAnimationFrame(update);
+        }
+
+        document.getElementById('density').addEventListener('input', (e) => {
+            density = e.target.value;
+        });
+
+        document.getElementById('viscosity').addEventListener('input', (e) => {
+            viscosity = e.target.value;
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            u.fill(0);
+            v.fill(0);
+            u_prev.fill(0);
+            v_prev.fill(0);
+            dens.fill(0);
+            dens_prev.fill(0);
+        });
+
+        update();
+    </script>
+</body>
+</html>

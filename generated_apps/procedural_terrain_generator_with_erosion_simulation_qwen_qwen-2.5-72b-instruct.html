@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Terrain Generator with Erosion Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #controls {
+            padding: 10px;
+            background: #333;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #terrain-container {
+            flex: 1;
+            position: relative;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .control-group label {
+            margin-bottom: 5px;
+        }
+        .control-group input {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="control-group">
+            <label for="width">Width</label>
+            <input type="number" id="width" value="256" min="64" max="1024">
+            <label for="height">Height</label>
+            <input type="number" id="height" value="256" min="64" max="1024">
+            <label for="scale">Scale</label>
+            <input type="number" id="scale" value="100" min="10" max="500">
+            <label for="octaves">Octaves</label>
+            <input type="number" id="octaves" value="6" min="1" max="10">
+            <label for="persistence">Persistence</label>
+            <input type="number" id="persistence" value="0.5" min="0.1" max="1" step="0.1">
+            <label for="lacunarity">Lacunarity</label>
+            <input type="number" id="lacunarity" value="2.0" min="1.0" max="5.0" step="0.1">
+        </div>
+        <div class="control-group">
+            <button id="generate">Generate Terrain</button>
+            <button id="erode">Erode Terrain</button>
+            <label for="erosionIterations">Erosion Iterations</label>
+            <input type="number" id="erosionIterations" value="100" min="1" max="1000">
+        </div>
+    </div>
+    <div id="terrain-container">
+        <canvas id="terrain-canvas"></canvas>
+        <div id="info">
+            <p>Procedural Terrain Generator with Erosion Simulation</p>
+            <p>Use the controls above to generate and erode the terrain.</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noisejs/1.0.0/perlin.min.js"></script>
+    <script>
+        let scene, camera, renderer, terrainMesh, terrainGeometry, terrainMaterial;
+        let width = 256, height = 256, scale = 100, octaves = 6, persistence = 0.5, lacunarity = 2.0;
+        let erosionIterations = 100;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+            camera.position.z = 500;
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('terrain-canvas') });
+            renderer.setSize(window.innerWidth, window.innerHeight - 60);
+            document.getElementById('terrain-container').appendChild(renderer.domElement);
+
+            generateTerrain();
+
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('generate').addEventListener('click', generateTerrain);
+            document.getElementById('erode').addEventListener('click', erodeTerrain);
+
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / (window.innerHeight - 60);
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight - 60);
+        }
+
+        function generateTerrain() {
+            width = parseInt(document.getElementById('width').value);
+            height = parseInt(document.getElementById('height').value);
+            scale = parseFloat(document.getElementById('scale').value);
+            octaves = parseInt(document.getElementById('octaves').value);
+            persistence = parseFloat(document.getElementById('persistence').value);
+            lacunarity = parseFloat(document.getElementById('lacunarity').value);
+
+            if (terrainMesh) scene.remove(terrainMesh);
+
+            terrainGeometry = new THREE.PlaneGeometry(width, height, width - 1, height - 1);
+            terrainGeometry.rotateX(-Math.PI / 2);
+
+            for (let i = 0; i < terrainGeometry.vertices.length; i++) {
+                const vertex = terrainGeometry.vertices[i];
+                vertex.z = noise.perlin3(vertex.x / scale, vertex.y / scale, 0.5) * 100;
+            }
+
+            terrainGeometry.computeVertexNormals();
+
+            terrainMaterial = new THREE.MeshStandardMaterial({ color: 0x77cc77, wireframe: false });
+            terrainMesh = new THREE.Mesh(terrainGeometry, terrainMaterial);
+            scene.add(terrainMesh);
+
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(1, 1, 1).normalize();
+            scene.add(directionalLight);
+        }
+
+        function erodeTerrain() {
+            erosionIterations = parseInt(document.getElementById('erosionIterations').value);
+
+            for (let i = 0; i < erosionIterations; i++) {
+                for (let j = 0; j < terrainGeometry.vertices.length; j++) {
+                    const vertex = terrainGeometry.vertices[j];
+                    let sum = 0;
+                    let count = 0;
+
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            if (dx === 0 && dy === 0) continue;
+
+                            const nx = vertex.x + dx;
+                            const ny = vertex.y + dy;
+
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                const neighbor = terrainGeometry.vertices.find(v => v.x === nx && v.y === ny);
+                                if (neighbor) {
+                                    sum += neighbor.z;
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+
+                    if (count > 0) {
+                        vertex.z = (vertex.z + sum / count) / 2;
+                    }
+                }
+            }
+
+            terrainGeometry.verticesNeedUpdate = true;
+            terrainGeometry.computeVertexNormals();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive L-System Fractal Generator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        canvas {
+            background: #2a2a2a;
+            border: 2px solid #4a4a4a;
+            margin-top: 20px;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .controls input, .controls select {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #3a3a3a;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .controls button:hover {
+            background: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive L-System Fractal Generator</h1>
+    <canvas id="fractalCanvas" width="800" height="600"></canvas>
+    <div class="controls">
+        <input type="text" id="axiom" placeholder="Axiom (e.g., F)">
+        <input type="text" id="rules" placeholder="Rules (e.g., F -> F+F--F+F)">
+        <input type="number" id="iterations" placeholder="Iterations (e.g., 5)" min="1" max="10">
+        <select id="angle">
+            <option value="22.5">22.5°</option>
+            <option value="30">30°</option>
+            <option value="45">45°</option>
+            <option value="60">60°</option>
+            <option value="90">90°</option>
+        </select>
+        <button id="generate">Generate Fractal</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const axiomInput = document.getElementById('axiom');
+        const rulesInput = document.getElementById('rules');
+        const iterationsInput = document.getElementById('iterations');
+        const angleInput = document.getElementById('angle');
+        const generateButton = document.getElementById('generate');
+
+        generateButton.addEventListener('click', () => {
+            const axiom = axiomInput.value;
+            const rules = parseRules(rulesInput.value);
+            const iterations = parseInt(iterationsInput.value, 10);
+            const angle = parseFloat(angleInput.value);
+
+            const lSystem = generateLSystem(axiom, rules, iterations);
+            drawFractal(lSystem, angle);
+        });
+
+        function parseRules(rulesString) {
+            const rules = {};
+            rulesString.split(',').forEach(rule => {
+                const [key, value] = rule.split('->').map(str => str.trim());
+                rules[key] = value;
+            });
+            return rules;
+        }
+
+        function generateLSystem(axiom, rules, iterations) {
+            let result = axiom;
+            for (let i = 0; i < iterations; i++) {
+                result = result.split('').map(char => rules[char] || char).join('');
+            }
+            return result;
+        }
+
+        function drawFractal(lSystem, angle) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+
+            const stack = [];
+            let x = canvas.width / 2;
+            let y = canvas.height / 2;
+            let currentAngle = 0;
+
+            lSystem.split('').forEach(command => {
+                if (command === 'F') {
+                    const newX = x + Math.cos(currentAngle * (Math.PI / 180));
+                    const newY = y + Math.sin(currentAngle * (Math.PI / 180));
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(newX, newY);
+                    ctx.stroke();
+                    x = newX;
+                    y = newY;
+                } else if (command === '+') {
+                    currentAngle += angle;
+                } else if (command === '-') {
+                    currentAngle -= angle;
+                } else if (command === '[') {
+                    stack.push({ x, y, currentAngle });
+                } else if (command === ']') {
+                    const state = stack.pop();
+                    x = state.x;
+                    y = state.y;
+                    currentAngle = state.currentAngle;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

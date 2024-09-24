@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Cellular Automaton with Multiple Rulesets</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            border: 1px solid #000;
+            margin: 20px 0;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #controls > * {
+            margin: 10px 0;
+        }
+        #ruleset-select {
+            width: 200px;
+        }
+        #start-stop, #clear, #randomize {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #speed-slider {
+            width: 200px;
+        }
+        #speed-label {
+            margin-left: 10px;
+        }
+        .info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced Cellular Automaton with Multiple Rulesets</h1>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="controls">
+        <label for="ruleset-select">Select Ruleset:</label>
+        <select id="ruleset-select">
+            <option value="conway">Conway's Game of Life</option>
+            <option value="highlife">HighLife</option>
+            <option value="maze">Maze</option>
+            <option value="wires">Wires</option>
+            <option value="seeds">Seeds</option>
+        </select>
+        <button id="start-stop">Start</button>
+        <button id="clear">Clear</button>
+        <button id="randomize">Randomize</button>
+        <label for="speed-slider">Speed:</label>
+        <input type="range" id="speed-slider" min="1" max="100" value="50">
+        <span id="speed-label">50</span>
+    </div>
+    <div class="info">
+        <p>Click on the canvas to toggle cells.</p>
+        <p>Select different rulesets to see how the automaton evolves.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const rulesetSelect = document.getElementById('ruleset-select');
+        const startStopButton = document.getElementById('start-stop');
+        const clearButton = document.getElementById('clear');
+        const randomizeButton = document.getElementById('randomize');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedLabel = document.getElementById('speed-label');
+
+        const cellSize = 10;
+        const cols = canvas.width / cellSize;
+        const rows = canvas.height / cellSize;
+        let grid = createGrid();
+        let isRunning = false;
+        let intervalId;
+
+        function createGrid() {
+            const grid = [];
+            for (let row = 0; row < rows; row++) {
+                grid.push(new Array(cols).fill(0));
+            }
+            return grid;
+        }
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (grid[row][col] === 1) {
+                        ctx.fillStyle = 'black';
+                    } else {
+                        ctx.fillStyle = 'white';
+                    }
+                    ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+
+        function updateGrid() {
+            const newGrid = createGrid();
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const neighbors = countNeighbors(row, col);
+                    newGrid[row][col] = applyRules(row, col, neighbors);
+                }
+            }
+            grid = newGrid;
+        }
+
+        function countNeighbors(row, col) {
+            let count = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (i === 0 && j === 0) continue;
+                    const newRow = (row + i + rows) % rows;
+                    const newCol = (col + j + cols) % cols;
+                    count += grid[newRow][newCol];
+                }
+            }
+            return count;
+        }
+
+        function applyRules(row, col, neighbors) {
+            const ruleset = rulesetSelect.value;
+            switch (ruleset) {
+                case 'conway':
+                    return applyConwayRules(row, col, neighbors);
+                case 'highlife':
+                    return applyHighLifeRules(row, col, neighbors);
+                case 'maze':
+                    return applyMazeRules(row, col, neighbors);
+                case 'wires':
+                    return applyWiresRules(row, col, neighbors);
+                case 'seeds':
+                    return applySeedsRules(row, col, neighbors);
+                default:
+                    return applyConwayRules(row, col, neighbors);
+            }
+        }
+
+        function applyConwayRules(row, col, neighbors) {
+            if (grid[row][col] === 1) {
+                return neighbors === 2 || neighbors === 3 ? 1 : 0;
+            } else {
+                return neighbors === 3 ? 1 : 0;
+            }
+        }
+
+        function applyHighLifeRules(row, col, neighbors) {
+            if (grid[row][col] === 1) {
+                return neighbors === 2 || neighbors === 3 ? 1 : 0;
+            } else {
+                return neighbors === 3 || neighbors === 6 ? 1 : 0;
+            }
+        }
+
+        function applyMazeRules(row, col, neighbors) {
+            if (grid[row][col] === 1) {
+                return neighbors >= 1 && neighbors <= 5 ? 1 : 0;
+            } else {
+                return neighbors === 3 ? 1 : 0;
+            }
+        }
+
+        function applyWiresRules(row, col, neighbors) {
+            if (grid[row][col] === 1) {
+                return neighbors === 1 || neighbors === 2 ? 1 : 0;
+            } else {
+                return neighbors === 3 ? 1 : 0;
+            }
+        }
+
+        function applySeedsRules(row, col, neighbors) {
+            if (grid[row][col] === 1) {
+                return 0;
+            } else {
+                return neighbors === 2 ? 1 : 0;
+            }
+        }
+
+        function toggleCell(row, col) {
+            grid[row][col] = grid[row][col] === 1 ? 0 : 1;
+            drawGrid();
+        }
+
+        function startStop() {
+            if (isRunning) {
+                clearInterval(intervalId);
+                startStopButton.textContent = 'Start';
+            } else {
+                intervalId = setInterval(() => {
+                    updateGrid();
+                    drawGrid();
+                }, 1000 / speedSlider.value);
+                startStopButton.textContent = 'Stop';
+            }
+            isRunning = !isRunning;
+        }
+
+        function clearGrid() {
+            grid = createGrid();
+            drawGrid();
+        }
+
+        function randomizeGrid() {
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    grid[row][col] = Math.random() > 0.5 ? 1 : 0;
+                }
+            }
+            drawGrid();
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const col = Math.floor((e.clientX - rect.left) / cellSize);
+            const row = Math.floor((e.clientY - rect.top) / cellSize);
+            toggleCell(row, col);
+        });
+
+        startStopButton.addEventListener('click', startStop);
+        clearButton.addEventListener('click', clearGrid);
+        randomizeButton.addEventListener('click', randomizeGrid);
+        speedSlider.addEventListener('input', () => {
+            speedLabel.textContent = speedSlider.value;
+            if (isRunning) {
+                clearInterval(intervalId);
+                intervalId = setInterval(() => {
+                    updateGrid();
+                    drawGrid();
+                }, 1000 / speedSlider.value);
+            }
+        });
+
+        drawGrid();
+    </script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Advanced Cellular Automaton</title>
+<style>
+body {
+  font-family: sans-serif;
+  margin: 0;
+  overflow: hidden;
+}
+#container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f0f0f0;
+}
+#canvas {
+  border: 1px solid #ccc;
+}
+#controls {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+button, select, input {
+  margin: 5px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+label {
+  margin-right: 5px;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="container">
+  <canvas id="canvas"></canvas>
+  <div id="controls">
+    <label for="ruleset">Ruleset:</label>
+    <select id="ruleset">
+      <option value="gameOfLife">Game of Life</option>
+      <option value="rule30">Rule 30</option>
+      <option value="rule110">Rule 110</option>
+      <option value="custom">Custom</option>
+    </select>
+    <label for="width">Width:</label>
+    <input type="number" id="width" value="100" min="50" max="500">
+    <label for="height">Height:</label>
+    <input type="number" id="height" value="50" min="30" max="250">
+    <label for="cellSize">Cell Size:</label>
+    <input type="number" id="cellSize" value="5" min="2" max="10">
+    <label for="speed">Speed:</label>
+    <input type="number" id="speed" value="100" min="10" max="1000">
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <button id="reset">Reset</button>
+    <button id="randomize">Randomize</button>
+    <div id="customRuleset" style="display: none;">
+      <label for="customRule">Custom Rule (binary):</label>
+      <input type="text" id="customRule" value="00011110"> 
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const rulesetSelect = document.getElementById('ruleset');
+const widthInput = document.getElementById('width');
+const heightInput = document.getElementById('height');
+const cellSizeInput = document.getElementById('cellSize');
+const speedInput = document.getElementById('speed');
+const startButton = document.getElementById('start');
+const stopButton = document.getElementById('stop');
+const resetButton = document.getElementById('reset');
+const randomizeButton = document.getElementById('randomize');
+const customRulesetDiv = document.getElementById('customRuleset');
+const customRuleInput = document.getElementById('customRule');
+
+let width, height, cellSize, speed, grid, intervalId;
+
+function initialize() {
+  width = parseInt(widthInput.value);
+  height = parseInt(heightInput.value);
+  cellSize = parseInt(cellSizeInput.value);
+  speed = parseInt(speedInput.value);
+  canvas.width = width * cellSize;
+  canvas.height = height * cellSize;
+  grid = createGrid(width, height);
+  clearInterval(intervalId);
+}
+
+function createGrid(width, height) {
+  return Array.from({ length: height }, () => Array.from({ length: width }, () => 0));
+}
+
+function randomizeGrid() {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      grid[y][x] = Math.random() < 0.5 ? 1 : 0;
+    }
+  }
+}
+
+function drawGrid() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (grid[y][x] === 1) {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+}
+
+function updateGrid() {
+  const newGrid = createGrid(width, height);
+  const ruleset = rulesetSelect.value;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const neighbors = getNeighbors(x, y);
+      const rule = getRule(ruleset, neighbors);
+      newGrid[y][x] = rule;
+    }
+  }
+  grid = newGrid;
+}
+
+function getNeighbors(x, y) {
+  let neighbors = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = (x + dx + width) % width;
+      const ny = (y + dy + height) % height;
+      neighbors = (neighbors << 1) | grid[ny][nx];
+    }
+  }
+  return neighbors;
+}
+
+function getRule(ruleset, neighbors) {
+  switch (ruleset) {
+    case 'gameOfLife':
+      return gameOfLifeRule(neighbors);
+    case 'rule30':
+      return rule30(neighbors);
+    case 'rule110':
+      return rule110(neighbors);
+    case 'custom':
+      return customRule(neighbors);
+    default:
+      return 0;
+  }
+}
+
+function gameOfLifeRule(neighbors) {
+  const liveNeighbors = countSetBits(neighbors);
+  const isAlive = grid[y][x] === 1;
+
+  if (isAlive) {
+    return (liveNeighbors === 2 || liveNeighbors === 3) ? 1 : 0;
+  } else {
+    return liveNeighbors === 3 ? 1 : 0;
+  }
+}
+
+function rule30(neighbors) {
+  return (30 >> (neighbors ^ 0xFF)) & 1;
+}
+
+function rule110(neighbors) {
+  return (110 >> (neighbors ^ 0xFF)) & 1;
+}
+
+function customRule(neighbors) {
+  const ruleString = customRuleInput.value;
+  if (ruleString.length !== 8 || !/^[01]+$/.test(ruleString)) {
+    return 0; // Invalid rule, return 0 by default
+  }
+  const rule = parseInt(ruleString, 2);
+  return (rule >> (neighbors ^ 0xFF)) & 1;
+}
+
+function countSetBits(n) {
+  let count = 0;
+  while (n > 0) {
+    n &= (n - 1);
+    count++;
+  }
+  return count;
+}
+
+function start() {
+  clearInterval(intervalId);
+  intervalId = setInterval(() => {
+    updateGrid();
+    drawGrid();
+  }, speed);
+}
+
+function stop() {
+  clearInterval(intervalId);
+}
+
+function reset() {
+  initialize();
+  drawGrid();
+}
+
+// Event Listeners
+rulesetSelect.addEventListener('change', () => {
+  customRulesetDiv.style.display = rulesetSelect.value === 'custom' ? 'block' : 'none';
+});
+
+startButton.addEventListener('click', start);
+stopButton.addEventListener('click', stop);
+resetButton.addEventListener('click', reset);
+randomizeButton.addEventListener('click', () => {
+  randomizeGrid();
+  drawGrid();
+});
+
+widthInput.addEventListener('change', initialize);
+heightInput.addEventListener('change', initialize);
+cellSizeInput.addEventListener('change', initialize);
+speedInput.addEventListener('change', () => {
+  speed = parseInt(speedInput.value);
+  if (intervalId) {
+    clearInterval(intervalId);
+    start(); 
+  }
+});
+
+initialize();
+drawGrid(); 
+</script>
+</body>
+</html>

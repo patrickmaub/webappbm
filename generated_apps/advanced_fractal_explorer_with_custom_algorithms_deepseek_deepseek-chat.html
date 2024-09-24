@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Fractal Explorer</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #2c3e50;
+            color: #ecf0f1;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 1px solid #ecf0f1;
+            background: #34495e;
+            margin: 20px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin: 10px;
+        }
+        .controls label {
+            margin: 5px 10px;
+        }
+        .controls input[type="range"] {
+            width: 150px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            background: #3498db;
+            color: #ecf0f1;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .controls button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced Fractal Explorer</h1>
+    <canvas id="fractalCanvas" width="800" height="600"></canvas>
+    <div class="controls">
+        <label for="fractalType">Fractal Type:</label>
+        <select id="fractalType">
+            <option value="mandelbrot">Mandelbrot</option>
+            <option value="julia">Julia</option>
+            <option value="burningShip">Burning Ship</option>
+            <option value="tricorn">Tricorn</option>
+        </select>
+        <label for="maxIterations">Max Iterations:</label>
+        <input type="range" id="maxIterations" min="10" max="500" value="100">
+        <label for="zoomLevel">Zoom Level:</label>
+        <input type="range" id="zoomLevel" min="1" max="10" value="1">
+        <button id="renderButton">Render Fractal</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const fractalTypeSelect = document.getElementById('fractalType');
+        const maxIterationsSlider = document.getElementById('maxIterations');
+        const zoomLevelSlider = document.getElementById('zoomLevel');
+        const renderButton = document.getElementById('renderButton');
+
+        let width = canvas.width;
+        let height = canvas.height;
+        let zoom = parseFloat(zoomLevelSlider.value);
+        let maxIterations = parseInt(maxIterationsSlider.value);
+        let fractalType = fractalTypeSelect.value;
+
+        function renderFractal() {
+            zoom = parseFloat(zoomLevelSlider.value);
+            maxIterations = parseInt(maxIterationsSlider.value);
+            fractalType = fractalTypeSelect.value;
+
+            ctx.clearRect(0, 0, width, height);
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let zx = (x - width / 2) / (0.5 * zoom * width);
+                    let zy = (y - height / 2) / (0.5 * zoom * height);
+                    let i = 0;
+
+                    switch (fractalType) {
+                        case 'mandelbrot':
+                            let cX = zx;
+                            let cY = zy;
+                            while (zx * zx + zy * zy < 4 && i < maxIterations) {
+                                let tmp = zx * zx - zy * zy + cX;
+                                zy = 2 * zx * zy + cY;
+                                zx = tmp;
+                                i++;
+                            }
+                            break;
+                        case 'julia':
+                            let cJX = -0.7;
+                            let cJY = 0.27015;
+                            while (zx * zx + zy * zy < 4 && i < maxIterations) {
+                                let tmp = zx * zx - zy * zy + cJX;
+                                zy = 2 * zx * zy + cJY;
+                                zx = tmp;
+                                i++;
+                            }
+                            break;
+                        case 'burningShip':
+                            while (zx * zx + zy * zy < 4 && i < maxIterations) {
+                                let tmp = zx * zx - zy * zy + cX;
+                                zy = Math.abs(2 * zx * zy) + cY;
+                                zx = Math.abs(tmp);
+                                i++;
+                            }
+                            break;
+                        case 'tricorn':
+                            while (zx * zx + zy * zy < 4 && i < maxIterations) {
+                                let tmp = zx * zx - zy * zy + cX;
+                                zy = -2 * zx * zy + cY;
+                                zx = tmp;
+                                i++;
+                            }
+                            break;
+                    }
+
+                    let color = i === maxIterations ? 0 : 255 - i * 255 / maxIterations;
+                    ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+
+        renderButton.addEventListener('click', renderFractal);
+        renderFractal();
+    </script>
+</body>
+</html>

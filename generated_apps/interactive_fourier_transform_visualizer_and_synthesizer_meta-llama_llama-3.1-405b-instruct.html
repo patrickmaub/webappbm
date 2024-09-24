@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fourier Transform Visualizer & Synthesizer</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        canvas { border: 1px solid black; }
+    </style>
+</head>
+<body>
+    <h1>Fourier Transform Visualizer & Synthesizer</h1>
+    <canvas id="signalCanvas" width="400" height="200"></canvas>
+    <canvas id="spectrumCanvas" width="400" height="200"></canvas>
+    <canvas id="synthesisCanvas" width="400" height="200"></canvas>
+    <input id="frequency" type="range" min="1" max="100" value="10" oninput="update()">
+    <label for="frequency">Frequency: <span id="freqLabel">10</span> Hz</label>
+    <input id="amplitude" type="range" min="1" max="100" value="50" oninput="update()">
+    <label for="amplitude">Amplitude: <span id="ampLabel">50</span></label>
+    <button onclick="synthesis()">Synthesize</button>
+
+    <script>
+        const signalCanvas = document.getElementById('signalCanvas');
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const synthesisCanvas = document.getElementById('synthesisCanvas');
+        const frequencyInput = document.getElementById('frequency');
+        const amplitudeInput = document.getElementById('amplitude');
+        const freqLabel = document.getElementById('freqLabel');
+        const ampLabel = document.getElementById('ampLabel');
+
+        let signalContext, spectrumContext, synthesisContext;
+
+        function init() {
+            signalContext = signalCanvas.getContext('2d');
+            spectrumContext = spectrumCanvas.getContext('2d');
+            synthesisContext = synthesisCanvas.getContext('2d');
+            drawSignal();
+            drawSpectrum();
+        }
+
+        function drawSignal() {
+            const width = signalCanvas.width;
+            const height = signalCanvas.height;
+            signalContext.clearRect(0, 0, width, height);
+            signalContext.beginPath();
+            for (let x = 0; x < width; x++) {
+                const y = height / 2 + Math.sin(x * 0.01 * frequencyInput.value) * amplitudeInput.value * height / 100;
+                signalContext.lineTo(x, y);
+            }
+            signalContext.stroke();
+        }
+
+        function drawSpectrum() {
+            const width = spectrumCanvas.width;
+            const height = spectrumCanvas.height;
+            spectrumContext.clearRect(0, 0, width, height);
+            // Simplified spectrum drawing for demonstration
+            for (let i = 0; i < 10; i++) {
+                const x = width / 10 * i;
+                const y = height - (i * 20);
+                spectrumContext.fillRect(x, y, 20, 20);
+            }
+        }
+
+        function synthesis() {
+            const width = synthesisCanvas.width;
+            const height = synthesisCanvas.height;
+            synthesisContext.clearRect(0, 0, width, height);
+            synthesisContext.beginPath();
+            for (let x = 0; x < width; x++) {
+                // Example synthesis, modify based on actual requirements
+                const y = height / 2 + Math.sin(x * 0.01 * frequencyInput.value * 2) * amplitudeInput.value * height / 100;
+                synthesisContext.lineTo(x, y);
+            }
+            synthesisContext.stroke();
+        }
+
+        function update() {
+            freqLabel.textContent = frequencyInput.value;
+            ampLabel.textContent = amplitudeInput.value;
+            drawSignal();
+        }
+
+        init();
+    </script>
+</body>
+</html>

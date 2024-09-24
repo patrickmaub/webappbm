@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Procedural Terrain Generator with Erosion Simulation</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      color: white;
+      font-family: monospace;
+    }
+
+    #controls label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    #controls input[type="range"] {
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="terrainCanvas"></canvas>
+  <div id="controls">
+    <label for="seed">Seed:</label>
+    <input type="range" id="seed" min="0" max="1000" value="0">
+    <label for="roughness">Roughness:</label>
+    <input type="range" id="roughness" min="0" max="1" step="0.01" value="0.5">
+    <label for="erosionIterations">Erosion Iterations:</label>
+    <input type="range" id="erosionIterations" min="0" max="1000" value="100">
+    <label for="rainAmount">Rain Amount:</label>
+    <input type="range" id="rainAmount" min="0" max="1" step="0.01" value="0.1">
+    <label for="evaporationRate">Evaporation Rate:</label>
+    <input type="range" id="evaporationRate" min="0" max="1" step="0.01" value="0.5">
+    <label for="sedimentCapacityFactor">Sediment Capacity Factor:</label>
+    <input type="range" id="sedimentCapacityFactor" min="0" max="10" step="0.1" value="1">
+    <label for="gravity">Gravity:</label>
+    <input type="range" id="gravity" min="0" max="1" step="0.01" value="0.1">
+  </div>
+
+  <script>
+    const canvas = document.getElementById('terrainCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const controls = {
+      seed: document.getElementById('seed'),
+      roughness: document.getElementById('roughness'),
+      erosionIterations: document.getElementById('erosionIterations'),
+      rainAmount: document.getElementById('rainAmount'),
+      evaporationRate: document.getElementById('evaporationRate'),
+      sedimentCapacityFactor: document.getElementById('sedimentCapacityFactor'),
+      gravity: document.getElementById('gravity')
+    };
+
+    let terrain = [];
+
+    function generateTerrain(width, height, seed, roughness) {
+      terrain = [];
+      for (let i = 0; i < width; i++) {
+        terrain[i] = new Array(height).fill(0);
+      }
+
+      const random = new Math.seedrandom(seed);
+
+      function diamondSquare(x1, y1, x2, y2, size, offset) {
+        if (size <= 1) return;
+
+        const midX = Math.floor((x1 + x2) / 2);
+        const midY = Math.floor((y1 + y2) / 2);
+
+        // Diamond step
+        terrain[midX][midY] = (terrain[x1][y1] + terrain[x2][y1] + terrain[x1][y2] + terrain[x2][y2]) / 4 + (random() - 0.5) * offset;
+
+        // Square step
+        terrain[midX][y1] = (terrain[x1][y1] + terrain[x2][y1] + terrain[midX][midY]) / 3 + (random() - 0.5) * offset;
+        terrain[midX][y2] = (terrain[x1][y2] + terrain[x2][y2] + terrain[midX][midY]) / 3 + (random() - 0.5) * offset;
+        terrain[x1][midY] = (terrain[x1][y1] + terrain[x1][y2] + terrain[midX][midY]) / 3 + (random() - 0.5) * offset;
+        terrain[x2][midY] = (terrain[x2][y1] + terrain[x2][y2] + terrain[midX][midY]) / 3 + (random() - 0.5) * offset;
+
+        diamondSquare(x1, y1, midX, midY, size / 2, offset * roughness);
+        diamondSquare(midX, y1, x2, midY, size / 2, offset * roughness);
+        diamondSquare(x1, midY, midX, y2, size / 2, offset * roughness);
+        diamondSquare(midX, midY, x2, y2, size / 2, offset * roughness);
+      }
+
+      terrain[0][0] = random();
+      terrain[width - 1][0] = random();
+      terrain[0][height - 1] = random();
+      terrain[width - 1][height - 1] = random();
+
+      diamondSquare(0, 0, width - 1, height - 1, width - 1, 1);
+
+      // Normalize terrain to 0-1 range
+      let minHeight = terrain[0][0];
+      let maxHeight = terrain[0][0];
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          minHeight = Math.min(minHeight, terrain[x][y]);
+          maxHeight = Math.max(maxHeight, terrain[x][y]);
+        }
+      }
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          terrain[x][y] = (terrain[x][y] - minHeight) / (maxHeight - minHeight);
+        }
+      }
+    }
+
+    function erodeTerrain(iterations, rainAmount, evaporationRate, sedimentCapacityFactor, gravity) {
+      const width = terrain.length;
+      const height = terrain[0].length;
+
+      const water = [];
+      const sediment = [];
+      for (let i = 0; i < width; i++) {
+        water[i] = new Array(height).fill(0);
+        sediment[i] = new Array(height).fill(0);
+      }
+
+      for (let i = 0; i < iterations; i++) {
+        // Rain
+        for (let x = 0; x < width; x++) {
+          for (let y = 0; y < height; y++) {
+            water[x][y] += rainAmount;
+          }
+        }
+
+        // Erosion and deposition
+        for (let x = 0; x < width; x++) {
+          for (let y = 0; y < height; y++) {
+            let downhillX = x;
+            let downhillY = y;
+            let lowestHeight = terrain[x][y];
+
+            // Find downhill neighbor
+            for (let dx = -1; dx <= 1; dx++) {
+              for (let dy = -1; dy <= 1; dy++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                  if (terrain[nx][ny] < lowestHeight) {
+                    lowestHeight = terrain[nx][ny];
+                    downhillX = nx;
+                    downhillY = ny;
+                  }
+                }
+              }
+            }
+
+            const heightDifference = terrain[x][y] - lowestHeight;
+            const sedimentCapacity = Math.max(0, heightDifference * water[x][y] * sedimentCapacityFactor);
+
+            if (sediment[x][y] > sedimentCapacity) {
+              // Deposit sediment
+              const depositAmount = (sediment[x][y] - sedimentCapacity) / 2;
+              terrain[x][y] += depositAmount;
+              sediment[x][y] -= depositAmount;
+              if (downhillX !== x || downhillY !== y) {
+                terrain[downhillX][downhillY] -= depositAmount;
+                sediment[downhillX][downhillY] += depositAmount;
+              }
+            } else {
+              // Erode terrain
+              const erosionAmount = Math.min(heightDifference, water[x][y] * gravity);
+              terrain[x][y] -= erosionAmount;
+              sediment[x][y] += erosionAmount;
+              if (downhillX !== x || downhillY !== y) {
+                terrain[downhillX][downhillY] += erosionAmount;
+                water[downhillX][downhillY] += water[x][y];
+              }
+            }
+
+            water[x][y] *= (1 - evaporationRate);
+          }
+        }
+      }
+    }
+
+    function renderTerrain() {
+      const width = terrain.length;
+      const height = terrain[0].length;
+      const cellSize = Math.min(canvas.width / width, canvas.height / height);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const heightValue = terrain[x][y];
+          const color = Math.floor(heightValue * 255);
+          ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    function updateTerrain() {
+      const seed = parseInt(controls.seed.value);
+      const roughness = parseFloat(controls.roughness.value);
+      const erosionIterations = parseInt(controls.erosionIterations.value);
+      const rainAmount = parseFloat(controls.rainAmount.value);
+      const evaporationRate = parseFloat(controls.evaporationRate.value);
+      const sedimentCapacityFactor = parseFloat(controls.sedimentCapacityFactor.value);
+      const gravity = parseFloat(controls.gravity.value);
+
+      generateTerrain(256, 256, seed, roughness);
+      erodeTerrain(erosionIterations, rainAmount, evaporationRate, sedimentCapacityFactor, gravity);
+      renderTerrain();
+    }
+
+    for (const control in controls) {
+      controls[control].addEventListener('input', updateTerrain);
+    }
+
+    updateTerrain();
+  </script>
+</body>
+
+</html>

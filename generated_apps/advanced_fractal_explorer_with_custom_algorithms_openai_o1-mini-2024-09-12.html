@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Fractal Explorer</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #c0c0c0;
+        }
+        #container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+        #sidebar {
+            width: 300px;
+            background-color: #2e2e2e;
+            padding: 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #sidebar h2 {
+            margin-top: 0;
+            color: #ffffff;
+        }
+        #sidebar label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        #sidebar input[type="range"], #sidebar input[type="color"], #sidebar select, #sidebar textarea {
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+            background-color: #3e3e3e;
+            border: none;
+            color: #ffffff;
+        }
+        #sidebar button {
+            margin-top: 10px;
+            padding: 10px;
+            width: 100%;
+            background-color: #555555;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+        }
+        #fractalCanvas {
+            flex-grow: 1;
+            display: block;
+        }
+        #error {
+            color: #ff5555;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h2>Fractal Explorer</h2>
+            <label for="fractalType">Fractal Type:</label>
+            <select id="fractalType">
+                <option value="mandelbrot">Mandelbrot</option>
+                <option value="julia">Julia</option>
+                <option value="custom">Custom</option>
+            </select>
+
+            <div id="juliaParameters" style="display: none;">
+                <label for="juliaReal">Julia Real:</label>
+                <input type="range" id="juliaReal" min="-2" max="2" step="0.01" value="-0.7">
+                <span id="juliaRealVal">-0.7</span>
+
+                <label for="juliaImag">Julia Imaginary:</label>
+                <input type="range" id="juliaImag" min="-2" max="2" step="0.01" value="0.27015">
+                <span id="juliaImagVal">0.27015</span>
+            </div>
+
+            <div id="customParameters" style="display: none;">
+                <label for="customAlgorithm">Custom Algorithm:</label>
+                <textarea id="customAlgorithm" rows="10">function iterate(z, c) {
+    // Example: z = z^2 + c
+    return {
+        real: z.real * z.real - z.imag * z.imag + c.real,
+        imag: 2 * z.real * z.imag + c.imag
+    };
+}</textarea>
+                <label for="maxIterations">Max Iterations:</label>
+                <input type="range" id="maxIterations" min="50" max="1000" step="50" value="300">
+                <span id="maxIterationsVal">300</span>
+            </div>
+
+            <label for="colorScheme">Color Scheme:</label>
+            <select id="colorScheme">
+                <option value="classic">Classic</option>
+                <option value="fire">Fire</option>
+                <option value="ice">Ice</option>
+                <option value="forest">Forest</option>
+                <option value="customColor">Custom</option>
+            </select>
+
+            <div id="customColorPicker" style="display: none;">
+                <label for="colorPicker1">Color 1:</label>
+                <input type="color" id="colorPicker1" value="#ff0000">
+                <label for="colorPicker2">Color 2:</label>
+                <input type="color" id="colorPicker2" value="#0000ff">
+            </div>
+
+            <label for="zoom">Zoom:</label>
+            <input type="range" id="zoom" min="1" max="1000" step="1" value="300">
+            <span id="zoomVal">300</span>
+
+            <label for="offsetX">Offset X:</label>
+            <input type="range" id="offsetX" min="-2" max="2" step="0.01" value="-0.5">
+            <span id="offsetXVal">-0.5</span>
+
+            <label for="offsetY">Offset Y:</label>
+            <input type="range" id="offsetY" min="-2" max="2" step="0.01" value="0">
+            <span id="offsetYVal">0</span>
+
+            <button id="renderButton">Render Fractal</button>
+            <div id="error"></div>
+        </div>
+        <canvas id="fractalCanvas"></canvas>
+    </div>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('fractalCanvas');
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth - 300;
+            let height = canvas.height = window.innerHeight;
+
+            // UI Elements
+            const fractalType = document.getElementById('fractalType');
+            const juliaParameters = document.getElementById('juliaParameters');
+            const juliaReal = document.getElementById('juliaReal');
+            const juliaImag = document.getElementById('juliaImag');
+            const juliaRealVal = document.getElementById('juliaRealVal');
+            const juliaImagVal = document.getElementById('juliaImagVal');
+
+            const customParameters = document.getElementById('customParameters');
+            const customAlgorithm = document.getElementById('customAlgorithm');
+            const maxIterations = document.getElementById('maxIterations');
+            const maxIterationsVal = document.getElementById('maxIterationsVal');
+
+            const colorScheme = document.getElementById('colorScheme');
+            const customColorPicker = document.getElementById('customColorPicker');
+            const colorPicker1 = document.getElementById('colorPicker1');
+            const colorPicker2 = document.getElementById('colorPicker2');
+
+            const zoom = document.getElementById('zoom');
+            const zoomVal = document.getElementById('zoomVal');
+            const offsetX = document.getElementById('offsetX');
+            const offsetXVal = document.getElementById('offsetXVal');
+            const offsetY = document.getElementById('offsetY');
+            const offsetYVal = document.getElementById('offsetYVal');
+
+            const renderButton = document.getElementById('renderButton');
+            const errorDiv = document.getElementById('error');
+
+            // Event Listeners
+            fractalType.addEventListener('change', () => {
+                if (fractalType.value === 'julia') {
+                    juliaParameters.style.display = 'block';
+                    customParameters.style.display = 'none';
+                } else if (fractalType.value === 'custom') {
+                    juliaParameters.style.display = 'none';
+                    customParameters.style.display = 'block';
+                } else {
+                    juliaParameters.style.display = 'none';
+                    customParameters.style.display = 'none';
+                }
+            });
+
+            juliaReal.addEventListener('input', () => {
+                juliaRealVal.textContent = juliaReal.value;
+            });
+
+            juliaImag.addEventListener('input', () => {
+                juliaImagVal.textContent = juliaImag.value;
+            });
+
+            maxIterations.addEventListener('input', () => {
+                maxIterationsVal.textContent = maxIterations.value;
+            });
+
+            colorScheme.addEventListener('change', () => {
+                if (colorScheme.value === 'customColor') {
+                    customColorPicker.style.display = 'block';
+                } else {
+                    customColorPicker.style.display = 'none';
+                }
+            });
+
+            zoom.addEventListener('input', () => {
+                zoomVal.textContent = zoom.value;
+            });
+
+            offsetX.addEventListener('input', () => {
+                offsetXVal.textContent = offsetX.value;
+            });
+
+            offsetY.addEventListener('input', () => {
+                offsetYVal.textContent = offsetY.value;
+            });
+
+            renderButton.addEventListener('click', () => {
+                renderFractal();
+            });
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth - 300;
+                height = canvas.height = window.innerHeight;
+                renderFractal();
+            });
+
+            // Fractal Rendering Function
+            function renderFractal() {
+                errorDiv.textContent = '';
+                const imgData = ctx.createImageData(width, height);
+                const data = imgData.data;
+
+                let computeIterate;
+                try {
+                    if (fractalType.value === 'mandelbrot') {
+                        computeIterate = function(z, c) {
+                            return {
+                                real: z.real * z.real - z.imag * z.imag + c.real,
+                                imag: 2 * z.real * z.imag + c.imag
+                            };
+                        };
+                    } else if (fractalType.value === 'julia') {
+                        const c = {
+                            real: parseFloat(juliaReal.value),
+                            imag: parseFloat(juliaImag.value)
+                        };
+                        computeIterate = function(z, _) {
+                            return {
+                                real: z.real * z.real - z.imag * z.imag + c.real,
+                                imag: 2 * z.real * z.imag + c.imag
+                            };
+                        };
+                    } else if (fractalType.value === 'custom') {
+                        const userCode = customAlgorithm.value;
+                        computeIterate = new Function('z', 'c', userCode + '; return iterate(z, c);');
+                    } else {
+                        throw new Error('Unsupported fractal type.');
+                    }
+                } catch (e) {
+                    errorDiv.textContent = 'Error in algorithm: ' + e.message;
+                    return;
+                }
+
+                const maxIter = fractalType.value === 'custom' ? parseInt(maxIterations.value) : 300;
+
+                // Color Scheme
+                let colors = [];
+                if (colorScheme.value === 'classic') {
+                    colors = classicColorScheme(maxIter);
+                } else if (colorScheme.value === 'fire') {
+                    colors = fireColorScheme(maxIter);
+                } else if (colorScheme.value === 'ice') {
+                    colors = iceColorScheme(maxIter);
+                } else if (colorScheme.value === 'forest') {
+                    colors = forestColorScheme(maxIter);
+                } else if (colorScheme.value === 'customColor') {
+                    colors = customColorScheme(maxIter, colorPicker1.value, colorPicker2.value);
+                } else {
+                    colors = classicColorScheme(maxIter);
+                }
+
+                // Viewport
+                const zoomFactor = parseFloat(zoom.value);
+                const offsetXValNum = parseFloat(offsetX.value);
+                const offsetYValNum = parseFloat(offsetY.value);
+
+                for (let x = 0; x < width; x++) {
+                    for (let y = 0; y < height; y++) {
+                        const a = (x - width / 2) / zoomFactor + offsetXValNum;
+                        const b = (y - height / 2) / zoomFactor + offsetYValNum;
+
+                        let z = { real: 0, imag: 0 };
+                        let c = { real: a, imag: b };
+                        if (fractalType.value === 'julia') {
+                            c = null; // In Julia, c is constant
+                        }
+                        let iteration = 0;
+                        let currentZ = { real: a, imag: b }; // For Mandelbrot
+                        if (fractalType.value === 'julia') {
+                            currentZ = { real: a, imag: b };
+                            c = {
+                                real: parseFloat(juliaReal.value),
+                                imag: parseFloat(juliaImag.value)
+                            };
+                        }
+
+                        while (iteration < maxIter) {
+                            if (fractalType.value === 'mandelbrot' || fractalType.value === 'custom') {
+                                // For Mandelbrot and Custom, c changes per pixel
+                                var nextZ = computeIterate(currentZ, c);
+                            } else if (fractalType.value === 'julia') {
+                                var nextZ = computeIterate(currentZ, null);
+                            }
+
+                            currentZ = nextZ;
+                            if (currentZ.real * currentZ.real + currentZ.imag * currentZ.imag > 4) {
+                                break;
+                            }
+                            iteration++;
+                        }
+
+                        const pixelIndex = 4 * (y * width + x);
+                        const color = iteration === maxIter ? [0, 0, 0] : colors[iteration];
+                        data[pixelIndex] = color[0];
+                        data[pixelIndex + 1] = color[1];
+                        data[pixelIndex + 2] = color[2];
+                        data[pixelIndex + 3] = 255; // Alpha
+                    }
+                }
+
+                ctx.putImageData(imgData, 0, 0);
+            }
+
+            // Color Schemes
+            function classicColorScheme(maxIter) {
+                const colors = [];
+                for (let i = 0; i < maxIter; i++) {
+                    const hue = Math.floor(360 * i / maxIter);
+                    const color = hsvToRgb(hue, 1, i < maxIter ? 1 : 0);
+                    colors.push(color);
+                }
+                return colors;
+            }
+
+            function fireColorScheme(maxIter) {
+                const colors = [];
+                for (let i = 0; i < maxIter; i++) {
+                    const t = i / maxIter;
+                    const r = Math.min(255, Math.floor(255 * t * 2));
+                    const g = Math.min(255, Math.floor(255 * t));
+                    const b = Math.floor(50 * t);
+                    colors.push([r, g, b]);
+                }
+                return colors;
+            }
+
+            function iceColorScheme(maxIter) {
+                const colors = [];
+                for (let i = 0; i < maxIter; i++) {
+                    const t = i / maxIter;
+                    const r = Math.floor(50 * t);
+                    const g = Math.floor(100 * t);
+                    const b = Math.min(255, Math.floor(255 * t * 2));
+                    colors.push([r, g, b]);
+                }
+                return colors;
+            }
+
+            function forestColorScheme(maxIter) {
+                const colors = [];
+                for (let i = 0; i < maxIter; i++) {
+                    const t = i / maxIter;
+                    const r = Math.floor(20 * t);
+                    const g = Math.floor(100 * t + 155);
+                    const b = Math.floor(20 * t);
+                    colors.push([r, g, b]);
+                }
+                return colors;
+            }
+
+            function customColorScheme(maxIter, color1, color2) {
+                const start = hexToRgb(color1);
+                const end = hexToRgb(color2);
+                const colors = [];
+                for (let i = 0; i < maxIter; i++) {
+                    const t = i / maxIter;
+                    const r = Math.floor(start.r + (end.r - start.r) * t);
+                    const g = Math.floor(start.g + (end.g - start.g) * t);
+                    const b = Math.floor(start.b + (end.b - start.b) * t);
+                    colors.push([r, g, b]);
+                }
+                return colors;
+            }
+
+            // Utility Functions
+            function hsvToRgb(h, s, v) {
+                let r, g, b;
+                let i = Math.floor(h / 60);
+                let f = h / 60 - i;
+                let p = v * (1 - s);
+                let q = v * (1 - f * s);
+                let t = v * (1 - (1 - f) * s);
+                switch (i % 6) {
+                    case 0: r = v; g = t; b = p; break;
+                    case 1: r = q; g = v; b = p; break;
+                    case 2: r = p; g = v; b = t; break;
+                    case 3: r = p; g = q; b = v; break;
+                    case 4: r = t; g = p; b = v; break;
+                    case 5: r = v; g = p; b = q; break;
+                }
+                return [Math.floor(r * 255), Math.floor(g * 255), Math.floor(b * 255)];
+            }
+
+            function hexToRgb(hex) {
+                const bigint = parseInt(hex.slice(1), 16);
+                const r = (bigint >> 16) & 255;
+                const g = (bigint >> 8) & 255;
+                const b = bigint & 255;
+                return { r, g, b };
+            }
+
+            // Initial Render
+            renderFractal();
+        })();
+    </script>
+</body>
+</html>
