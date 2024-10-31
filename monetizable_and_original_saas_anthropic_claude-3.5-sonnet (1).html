@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContentGenius - AI-Powered Social Media Management</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-bg: #f5f6fa;
+            --dark-bg: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        #app-header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--secondary-color);
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #main-content {
+            margin-top: 80px;
+            padding: 40px 0;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            height: calc(100vh - 120px);
+            position: sticky;
+            top: 100px;
+        }
+
+        .content-area {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-title {
+            color: var(--secondary-color);
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .calendar-grid {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .calendar-cell {
+            aspect-ratio: 1;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-cell:hover {
+            background-color: var(--light-bg);
+        }
+
+        .post-preview {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #357abd;
+        }
+
+        .analytics-chart {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header id="app-header">
+        <div class="container header-content">
+            <div class="logo">ContentGenius</div>
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-link">Dashboard</a>
+                <a href="#calendar" class="nav-link">Calendar</a>
+                <a href="#analytics" class="nav-link">Analytics</a>
+                <a href="#settings" class="nav-link">Settings</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="container">
+            <div class="dashboard-grid">
+                <aside class="sidebar">
+                    <h3>Quick Actions</h3>
+                    <div id="quick-actions" style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="showModal('createPost')">Create Post</button>
+                    </div>
+                </aside>
+
+                <div class="content-area">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-title">Total Posts</div>
+                            <div class="metric-value">1,234</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">Engagement Rate</div>
+                            <div class="metric-value">4.8%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">Scheduled Posts</div>
+                            <div class="metric-value">28</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">AI Suggestions</div>
+                            <div class="metric-value">15</div>
+                        </div>
+                    </div>
+
+                    <div id="calendar" class="calendar-grid">
+                        <!-- Calendar cells will be generated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="createPostModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="hideModal('createPost')">&times;</span>
+            <h2>Create New Post</h2>
+            <form id="postForm" style="margin-top: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label>Platform</label>
+                    <select style="width: 100%; padding: 8px; margin-top: 5px;">
+                        <option>Instagram</option>
+                        <option>Twitter</option>
+                        <option>LinkedIn</option>
+                        <option>Facebook</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Content</label>
+                    <textarea style="width: 100%; height: 100px; padding: 8px; margin-top: 5px;"></textarea>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Schedule Date</label>
+                    <input type="datetime-local" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <button type="submit" class="btn btn-primary">Schedule Post</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Calendar Generation
+        function generateCalendar() {
+            const calendar = document.querySelector('.calendar-grid');
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            // Add day headers
+            days.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-cell';
+                dayHeader.style.fontWeight = 'bold';
+                dayHeader.textContent = day;
+                calendar.appendChild(dayHeader);
+            });
+
+            // Add date cells
+            for(let i = 1; i <= 31; i++) {
+                const dateCell = document.createElement('div');
+                dateCell.className = 'calendar-cell';
+                dateCell.innerHTML = `
+                    <div style="font-size: 14px;">${i}</div>
+                    <div class="post-preview" style="font-size: 12px;">
+                        ${Math.random() > 0.5 ? '📝 Post Scheduled' : ''}
+                    </div>
+                `;
+                calendar.appendChild(dateCell);
+            }
+        }
+
+        // Modal Functions
+        function showModal(modalType) {
+            document.getElementById(`${modalType}Modal`).style.display = 'block';
+        }
+
+        function hideModal(modalType) {
+            document.getElementById(`${modalType}Modal`).style.display = 'none';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            generateCalendar();
+            
+            // Form submission
+            document.getElementById('postForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Add post creation logic here
+                hideModal('createPost');
+            });
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Simulated real-time updates
+        setInterval(() => {
+            const metrics = document.querySelectorAll('.metric-value');
+            metrics.forEach(metric => {
+                const currentValue = parseInt(metric.textContent.replace(/[^0-9]/g, ''));
+                const newValue = currentValue + Math.floor(Math.random() * 3) - 1;
+                if(metric.textContent.includes('%')) {
+                    metric.textContent = newValue + '%';
+                } else {
+                    metric.textContent = newValue.toLocaleString();
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
